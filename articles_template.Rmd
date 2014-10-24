@@ -4,7 +4,6 @@
 source('token_lib.r')
 ```
 
-
 ```{r echo=FALSE, results='asis'}
 tokens$token = tagTokens(tokens$token, tokens$topic)
 html = ''

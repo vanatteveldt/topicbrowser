@@ -33,7 +33,7 @@ tokens2 = merge(tokens, wa, by.x=c('aid','lemma'), by.y=c('article_id','term'), 
 head(tokens2)
 
 e = new.env()
-e$tokens = data.frame(token=tokens2$lemma, token_index=tokens2$id, article_id=tokens2$aid, topic=tokens2$topic)
+e$tokens = data.frame(token=tokens2$word, token_index=tokens2$id, article_id=tokens2$aid, topic=tokens2$topic)
 e$meta = meta
 e$unique_ordered_aids = unique(tokens$aid)
 css = '.hip {color:red}'
