@@ -1,0 +1,18 @@
+
+
+```{r, echo=FALSE}
+source('token_lib.r')
+```
+
+
+```{r echo=FALSE, results='asis'}
+tokens$token = tagTokens(tokens$token, tokens$topic)
+html = ''
+for(aid in unique_ordered_aids){
+  art_tokens = tokens[tokens$article_id == aid,]
+  art_meta = meta[meta$id == aid,]
+  art = buildArticle(token=art_tokens$token, art_tokens$token_index, art_tokens$topic, aid, art_meta$headline, art_meta$date)
+  html = paste(html, art, '\n\n', sep='')
+}
+cat(html)
+```
