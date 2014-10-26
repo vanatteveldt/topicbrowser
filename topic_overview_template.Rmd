@@ -1,13 +1,14 @@
 
 
 ```{r, echo=FALSE}
-source('plot_lib.r')
+source('lib.r')
 ```
 
 ```{r fig.keep='all',echo=FALSE, out.extra='style="float:left"',fig.width=4,fig.height=4,warning=FALSE,results='asis',fig.cap=""}
 for(topic_id in topic_ids){
-  cat("<a href='",topic_id,"'>")
-  plot.wordcloud.time(m, docsums, date, topic_id)
+  cat("<a href=t",topic_id,".html>", sep='')
+  plot.topicoverview(topic_term_matrix, topic_document_matrix, date, topic_id, date_interval)
   cat("</a>")
 }
+
 ```

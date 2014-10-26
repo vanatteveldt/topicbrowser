@@ -63,21 +63,6 @@ documentsums <- function(m, weight.by.dtm=NULL){
   docsums
 }
 
-#' Get word assignments as a data.frame
-#' 
-#' Get the topics assigned to each word in a document as a data.frame with columns: article_id, word and topic.
-#' 
-#' @param m The output from the LDA function in the topicmodels package
-#' @param article_ids Optional, a selection of specific articles for which to get the word assignments.
-#' @return A data.frame with columns: article_id, word and topic
-#' @export
-getWordAssignments <- function(m, article_ids=m@documents){
-  docfilter = m@wordassignments$i %in% which(m@documents %in% article_ids)
-  data.frame(article_id = m@documents[m@wordassignments$i[docfilter]], 
-             term = m@terms[m@wordassignments$j[docfilter]], 
-             topic = m@wordassignments$v[docfilter])
-}
-
 #' Compute some useful corpus statistics for a dtm
 #' 
 #' Compute a number of useful statistics for filtering words: term frequency, idf, etc.
