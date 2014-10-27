@@ -45,8 +45,8 @@ topic_filename <- function(topic) paste("t", topic, ".html", sep="")
 render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, date_interval='year') {
   TEMPLATE="topic_overview_template.Rmd"
 
-  
-  
+
+  css = get_css(topic_ids)
   knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T)
 }
 
