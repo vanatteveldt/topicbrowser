@@ -1,3 +1,7 @@
+library(tm)
+library(slam)
+library(topicmodels)
+
 #' Cast data.frame to sparse matrix
 #' 
 #' Create a sparse matrix from matching vectors of row indices, column indices and values

@@ -161,7 +161,7 @@ tagTokens <- function(token, topic){
 }
 
 buildArticle <- function(token, token_index, topic, article_id=NULL, headline=NULL, medium=NULL, date=NULL, maxwords=NULL){
-  header = paste('<h3>', headline, '<i> (',article_id, ')</i></h3>', '<h1><i> ', date, ' - ', medium, '</i></h1>', sep='')
+  header = paste('<h1>', headline, '<i> (',article_id, ')</i></h1>', '<h3><i> ', date, ' - ', medium, '</i></h3>', sep='')
   if(!is.null(maxwords)) art = na.omit(token[order(token_index)][1:maxwords]) else art = token[order(token_index)]
   art = paste(art, collapse='')
   if(!is.null(maxwords)) art = paste(art, '[...]')

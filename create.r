@@ -15,3 +15,5 @@ tokens_topics = merge(tokens, wordassignments, by.x=c('aid','lemma'), by.y=c('ar
 
 # create topic browser
 createTopicBrowser(tokens_topics, wordassignments, meta, folder_name='topicbrowser')
+
+
