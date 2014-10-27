@@ -5,21 +5,34 @@ library(reshape2)
 
 source("plots.r")
 
-### general functions
+#' Create a topic browser
+#' 
+#' This will create a set of linked html pages to browse the given topic model
+#' 
+#' @param m: the fitted LDA model object from the topicmodels package
+#' @param terms: a vector of terms, which should be sorted in their original order and match m@terms
+#' @param documents: a vector of the same length as terms, indicating the document of each term, matching m@documents
+#' @param meta: a data frame with meta data about the documents, should have columns aid, headline, medium, and date (todo: make more flexible)
+#' @param folder_name: the name of the folder to save the browser to
+#' @param topic_ids: optionally restrict output to a selection of topics
+#' @param date_interval: specify the interval for plotting the meta$data
+#' @param words: if given, use instead of terms for displaying document
+#' @return: (invisible) the file url of the index page
+createTopicBrowser <- function(m, terms, documents, meta, folder_name=NULL, topic_ids=1:m@k, date_interval='year', words=terms) {
+  wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
+                               term = m@terms[m@wordassignments$j], 
+                               topic = m@wordassignments$v)
+  tokens_topics = data.frame(id=1:length(terms), term=terms, aid=documents, word=words)
+  tokens_topics = merge(tokens_topics, wordassignments, all.x=T) # match by the names for the article_id and term columns. Be sure to use all.x=T, or you'll drop all the unassigned terms
+  tokens_topics = tokens_topics[order(tokens_topics$aid, tokens_topics$id), ]
 
-getWordAssignments <- function(m, article_ids=m@documents){
-  docfilter = m@wordassignments$i %in% which(m@documents %in% article_ids)
-  data.frame(article_id = m@documents[m@wordassignments$i[docfilter]], 
-             term = m@terms[m@wordassignments$j[docfilter]], 
-             topic = m@wordassignments$v[docfilter])
-}
-
-createTopicBrowser <- function(tokens_topics, wordassignments, meta, folder_name='topicbrowser',
-                               topic_ids=sort(unique(wordassignments$topic)),
-                               date_interval='year') {
-  # prepare variables
-  topics_per_doc = acast(wordassignments, topic ~ article_id, value.var='term', fun.aggregate=length) 
-  topics_per_term = acast(wordassignments, topic ~ term, value.var='article_id', fun.aggregate=length)
+  # create topic browser
+  if (is.null(folder_name)) folder_name=tempdir()
+  opts_knit$set(base.dir = tempdir())
+  message("Saving pictures to ", opts_knit$get("base.dir"))
+  
+  topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
+  topics_per_term = acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
   
   meta = meta[match(colnames(topics_per_doc), meta$id),]
   #topicOverviewHtml(topics_per_term, topics_per_doc, meta, folder_name, topic_ids=topic_ids, date_interval=date_interval)
@@ -35,17 +48,23 @@ createTopicBrowser <- function(tokens_topics, wordassignments, meta, folder_name
     html = render_topic(topic, tokens_topics, meta, topics_per_doc, topics_per_term)
     cat(html, file=fn)
   }
+  invisible(file.path("file:/", folder_name, "index.html"))
 }
 
 topic_filename <- function(topic) paste("t", topic, ".html", sep="")
+
+getWordAssignments <- function(m, article_ids=m@documents){
+  docfilter = m@wordassignments$i %in% which(m@documents %in% article_ids)
+  data.frame(aid = m@documents[m@wordassignments$i[docfilter]], 
+             term = m@terms[m@wordassignments$j[docfilter]], 
+             topic = m@wordassignments$v[docfilter])
+}
 
 ##################################################
 ########## TOPIC OVERVIEW FUNCTIONS ##############
 ##################################################
 render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, date_interval='year') {
   TEMPLATE="topic_overview_template.Rmd"
-
-
   css = get_css(topic_ids)
   knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T)
 }
