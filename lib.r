@@ -44,7 +44,10 @@ topic_filename <- function(topic) paste("t", topic, ".html", sep="")
 ##################################################
 render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, date_interval='year') {
   TEMPLATE="topic_overview_template.Rmd"
-  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet="style.css")
+
+  
+  
+  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T)
 }
 
 ##################################################
@@ -62,9 +65,10 @@ render_topic <- function(topic_id, tokens_topics, meta, topics_per_doc, topics_p
   }
   
   top_articles = lapply(docs, render)
-  
+  css = get_css(rownames(topics_per_doc))
+
   TEMPLATE="articles_template.Rmd"
-  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet="style.css")
+  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T)
 }
 
 #' Render a single article
@@ -77,7 +81,7 @@ render_topic <- function(topic_id, tokens_topics, meta, topics_per_doc, topics_p
 render_article <- function(terms, topics, meta, fragment.only=T) {
   TEMPLATE = "article.Rmd"
   tokens = tagTokens(terms, topics)
-  out = knit2html(text=readLines(TEMPLATE, warn=F), fragment.only=fragment.only)
+  out = knit2html(text=readLines(TEMPLATE, warn=F), fragment.only=fragment.only, quiet = T)
   out
 }
 
@@ -101,18 +105,14 @@ tagTokens <- function(tokens, topics){
   tokens
 }
 
-htmlStyle <- function(topics){
-  utopics = unique(topics[!is.na(topics)])
-  colo = substr(rainbow(length(utopics)), 1,7)
-  css = htmlLinkStyle()
-  for(i in 1:length(utopics)) {
-    tcolor = paste('t', utopics[i], ' {background-color:',colo[i], "}\n", sep='')
-    css = paste(css, tcolor, sep='')
-  }
-  css
+
+
+get_css <- function(topic_ids) {
+  CSS_TEMPLATE="style.css"
+  css = readLines(CSS_TEMPLATE, warn=F)
+  colo = substr(rainbow(length(topic_ids)), 1,7)
+  colorcss = paste(".t", topic_ids, " {background-color: ",colo, "}", sep="")
+  c(css, colorcss)
 }
 
-htmlLinkStyle <- function(){
-  "a{color:#000000; text-decoration:none}\n"
-}
 
