@@ -4,10 +4,13 @@
 source('lib.r')
 ```
 
+Topic browser
+====
+
 ```{r fig.keep='all',echo=FALSE, out.extra='style="float:left"',fig.width=4,fig.height=4,warning=FALSE,results='asis',fig.cap=""}
 for(topic_id in topic_ids){
   cat("<a href=t",topic_id,".html>", sep='')
-  plot.topicoverview(topic_term_matrix, topic_document_matrix, date, topic_id, date_interval)
+  plot.topicoverview(topics_per_term, topics_per_doc, meta$date, topic_id, date_interval)
   cat("</a>")
 }
 

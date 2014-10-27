@@ -1,0 +1,12 @@
+### Article `r meta$id`: `r meta$headline`
+
+
+```{r results='asis', echo=FALSE}
+m = t(meta)
+colnames(m) <- "Metadata"
+kable(m, format='html')
+```
+
+```{r results='asis', echo=FALSE}
+cat(paste(tokens, collapse=" "))
+```

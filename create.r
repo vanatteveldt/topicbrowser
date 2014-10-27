@@ -12,8 +12,9 @@ wordassignments = getWordAssignments(m)
 colnames(tokens) # Check names for the column for article ids, and column for the tokens used in the LDA model
 colnames(wordassignments) # Match to tokens with the article_id and term columns
 tokens_topics = merge(tokens, wordassignments, by.x=c('aid','lemma'), by.y=c('article_id','term'), all.x=T) # match by the names for the article_id and term columns. Be sure to use all.x=T, or you'll drop all the unassigned terms
+tokens_topics = tokens_topics[order(tokens_topics$aid, tokens_topics$id), ]
 
 # create topic browser
-createTopicBrowser(tokens_topics, wordassignments, meta, folder_name='topicbrowser')
+createTopicBrowser(tokens_topics, wordassignments, meta, folder_name='/tmp/topicbrowser')
 
 

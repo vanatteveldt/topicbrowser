@@ -1,17 +1,17 @@
-
-
 ```{r, echo=FALSE}
 source('lib.r')
 ```
 
+Topic `r topic_id`
+====
+
+```{r echo=FALSE}
+plot.topicoverview(topics_per_term, topics_per_doc, meta$date, topic_id, date_interval)
+```
+
+Top articles
+====
+
 ```{r echo=FALSE, results='asis'}
-tokens_topics$word = tagTokens(tokens_topics$word, tokens_topics$topic)
-html = ''
-for(aid in unique_ordered_aids){
-  art_tokens = tokens_topics[tokens_topics$aid == aid,]
-  art_meta = meta[meta$id == aid,]
-  art = buildArticle(token=art_tokens$word, art_tokens$id, art_tokens$topic, aid, art_meta$headline, art_meta$medium, art_meta$date)
-  html = paste(html, art, '\n\n', sep='')
-}
-cat(html)
+for (a in top_articles) cat(a)
 ```
