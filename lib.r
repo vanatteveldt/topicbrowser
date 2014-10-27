@@ -5,12 +5,12 @@ library(reshape2)
 
 ### general functions
 
-knit2html_to_folder <- function(envir, template, folder_name, file_name){
+knit2html_to_folder <- function(envir, template, folder_name, file_name, css=NULL){
   ## to output knit html to another folder, the workingdir needs to be changed: http://www.rforge.net/doc/packages/knitr/knit.html
   wd = getwd()
   if(!file.exists(folder_name)) dir.create(file.path(wd, folder_name))
   setwd(file.path(wd, folder_name))
-  tryCatch(knit2html(file.path(wd,template), output=file_name, envir=envir, quiet=T), finally=setwd(wd))
+  tryCatch(knit2html(file.path(wd,template), output=file_name, envir=envir, quiet=T, stylesheet=css, title=file_name), finally=setwd(wd))
 }
 
 getWordAssignments <- function(m, article_ids=m@documents){
@@ -144,14 +144,15 @@ plot.topicoverview <- function(topic_term_matrix, topic_document_matrix, date_va
 articleHighlightHtml <- function(tokens_topics, topic_term_matrix, topic_document_matrix, meta, folder_name='topicbrowser', topic_ids=1:m@k, ntopdocuments=100, date_interval='year'){
   e = new.env()
   e$meta = meta
-  css = '.hip {color:red}'
+  css = htmlStyle(tokens_topics$topic)
+  
   
   for(topic_id in topic_ids){
     topicass = topic_document_matrix[topic_id,]
     topdocuments = as.character(na.omit(names(topicass[order(topicass, decreasing=T)[1:ntopdocuments]])))
     e$tokens_topics = tokens_topics[tokens_topics$aid %in% topdocuments,]
     e$unique_ordered_aids = topdocuments
-    knit2html_to_folder(e, 'articles_template.Rmd', folder_name, file_name=paste('t',topic_id,sep=''))
+    knit2html_to_folder(e, 'articles_template.Rmd', folder_name, file_name=paste('t',topic_id,sep=''), css)
   }
 }
 
@@ -172,8 +173,10 @@ addHtmlTags <- function(token, topic){
   token = as.character(token)
   token = gsub("`", "'", token)
   notna = which(!is.na(topic))
-  token[notna] = paste("<a href='t", topic[notna], ".html'>",
-                       "<span title='", topic[notna], "'>", token[notna], 
+  top = topic[!is.na(topic)]
+  token[notna] = paste("<a href='t", top, ".html'>",
+                       "<span ", "title='", top, "'>", 
+                       '<t',top,'>', token[notna], '</t',top,'>',  
                        "</span></a>", sep="")
   token
 }
@@ -184,4 +187,18 @@ addEmptySpaces <- function(tagged_word){
   tagged_word
 }
 
+htmlStyle <- function(topics){
+  utopics = unique(topics[!is.na(topics)])
+  colo = substr(rainbow(length(utopics)), 1,7)
+  css = htmlLinkStyle()
+  for(i in 1:length(utopics)) {
+    tcolor = paste('t', utopics[i], ' {background-color:',colo[i], "}\n", sep='')
+    css = paste(css, tcolor, sep='')
+  }
+  css
+}
+
+htmlLinkStyle <- function(){
+  "a{color:#000000; text-decoration:none}\n"
+}
 
