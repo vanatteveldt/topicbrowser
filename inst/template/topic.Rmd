@@ -1,17 +1,13 @@
-```{r, echo=FALSE}
-source('lib.r')
-```
-
 Topic `r topic_id`
 ====
 
-```{r echo=FALSE}
+```{r topic-plot, echo=FALSE}
 plot.topicoverview(topics_per_term, topics_per_doc, meta$date, topic_id, date_interval)
 ```
 
 Top articles
 ====
 
-```{r echo=FALSE, results='asis'}
+```{r topic-articles, echo=FALSE, results='asis'}
 for (a in top_articles) cat(a)
 ```

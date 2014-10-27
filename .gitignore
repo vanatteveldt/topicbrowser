@@ -11,3 +11,5 @@
 # RStudio files
 .Rproj.user/
 .Rproj.user
+.Rbuildignore
+README.html
