@@ -1,0 +1,32 @@
+<html>
+<head>
+<link href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+<style>
+$CSS$
+</style>
+</head>
+<body>
+<ul class="nav nav-tabs" role="tablist" id="topictab">
+  <li class="active"><a href="#home" role="tab" data-toggle="tab">Overview</a></li>
+$TABS$
+</ul>
+
+<!-- Tab panes -->
+<div class="tab-content">
+  <div class="tab-pane fade in active" id="home">
+$INDEX$
+  </div>
+$TOPICS$
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/js/carousel.min.js"></script>
+<script>
+function showTab(id) {
+  $('#topictab a[href="#t'+id+'"]').tab('show') 
+  return false;
+}
+</script>
+</body>
+</html>

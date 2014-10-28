@@ -4,7 +4,7 @@ Browse LDA Topic Models
 This package allows you to create a set of HTML files to browse a topic model.
 It creates a word cloud and time-graph per topic, and annotates a selection of documents with the topic for each word.
 
-See the [example output](https://cdn.rawgit.com/vanatteveldt/topicbrowser/master/sotu/index.html) for a collection of State of the Union addresses.
+See the [the example](http://rpubs.com/vanatteveldt/topicbrowser) for a collection of State of the Union addresses.
 
 Installing 
 ----
@@ -38,8 +38,16 @@ head(meta)
 With these data, you can create a topic browser as follows:
 
 ```{r warning=FALSE, fig.keep='none'}
-output = file.path(tempdir(), "topics")
-createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, folder_name=output)
+output = tempfile(fileext = ".html")  
+createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, output = output)
 ```
 
-This produces the results shown in the [sotu](https://cdn.rawgit.com/vanatteveldt/topicbrowser/master/sotu/index.html) folder
+You can also publish the output file directly using `markdown::rpubsupload`:
+
+```{r eval=FALSE}
+library(markdown)
+result = rpubsUpload("Example topic browser", output)
+browseURL(result$continueUrl)
+```
+
+This produces the results shown in the [the example](http://rpubs.com/vanatteveldt/topicbrowser)

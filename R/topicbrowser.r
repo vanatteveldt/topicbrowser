@@ -6,13 +6,13 @@
 #' @param terms: a vector of terms, which should be sorted in their original order and match m@@terms
 #' @param documents: a vector of the same length as terms, indicating the document of each term, matching m@@documents
 #' @param meta: a data frame with meta data about the documents, should have columns aid, headline, medium, and date (todo: make more flexible)
-#' @param folder_name: the name of the folder to save the browser to
 #' @param topic_ids: optionally restrict output to a selection of topics
 #' @param date_interval: specify the interval for plotting the meta$data
 #' @param words: if given, use instead of terms for displaying document
-#' @return (invisible) the file url of the index page
+#' @param output: an optional file name to write the browser html to
+#' @return the html generated or (invisible) the filename
 #' @export
-createTopicBrowser <- function(m, terms, documents, meta, folder_name=NULL, topic_ids=1:m@k, date_interval='year', words=terms) {
+createTopicBrowser <- function(m, terms, documents, meta, topic_ids=1:m@k, date_interval='year', words=terms, output=NULL, browse=interactive()) {
   wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
                                term = m@terms[m@wordassignments$j], 
                                topic = m@wordassignments$v)
@@ -21,32 +21,74 @@ createTopicBrowser <- function(m, terms, documents, meta, folder_name=NULL, topi
   tokens_topics = tokens_topics[order(tokens_topics$aid, tokens_topics$id), ]
 
   # create topic browser
-  if (is.null(folder_name)) folder_name=tempdir()
-  #opts_knit$set(base.dir = folder_name)
-  message("Saving pictures to ", opts_knit$get("base.dir"))
+  # opts_knit$set(base.dir = tempdir())
+  # message("Saving pictures to ", opts_knit$get("base.dir"))
   
   topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
   topics_per_term = acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
   
   meta = meta[match(colnames(topics_per_doc), meta$id),]
   #topicOverviewHtml(topics_per_term, topics_per_doc, meta, folder_name, topic_ids=topic_ids, date_interval=date_interval)
-  if (!file.exists(folder_name)) dir.create(folder_name, recursive=T)
   
-  fn = file.path(folder_name, "index.html")
-  message("Rendering index page to ", fn)
-  html = render_overview(topics_per_term, topics_per_doc, meta, topic_ids)
-  cat(html, file=fn)
-  for (topic in topic_ids) {
-    fn = file.path(folder_name, topic_filename(topic))
-    message("Rendering topic ", topic, " to ", fn)
-    html = render_topic(topic, tokens_topics, meta, topics_per_doc, topics_per_term)
-    cat(html, file=fn)
+  message("Rendering index page")
+  index = render_overview(topics_per_term, topics_per_doc, meta, topic_ids)
+  
+  topics = lapply(topic_ids, render_topic, tokens_topics, meta, topics_per_doc, topics_per_term)
+  
+  html = create_html(index, topics)
+  
+  if (!is.null(output)) {
+    cat(html, file=output)
+    closeAllConnections() 
+    if (browse) browseURL(output)
+    message("HTML written to ", output)
+    invisible(output)
+  } else {
+    html
   }
-  invisible(file.path("file:/", folder_name, "index.html"))
 }
 
+publish <- function(html_file=NULL, html=NULL, title="Topic browser", id=NULL) {
+  if (is.null(html_file)) {
+    html_file = tempfile(fileext = ".html")
+    message("Saving html to ", html_file)
+    cat(html, file=html_file)  
+    closeAllConnections() 
+  }
+  message("Publishing ", html_file)
+  result = if (is.null(id))  rpubsUpload(title, html_file) else  rpubsUpload(title, html_file, id=id)
+  if (is.null(result$continueUrl))  stop(result$error)
+  if (interactive()) browseURL(result$continueUrl)
+  message("Please visit ",result$continueUrl, " to finish publication")
+  message("To update this topic browser later, use publish(... ,id='",result$id,"')")
+  invisible(result)
+}
 
 ### HTML rendering
+
+create_html <- function(index, topics) {
+  ids = paste("t", 1:length(topics), sep="")
+  names = paste("Topic", 1:length(topics))
+  tabs_html = paste(tab_html(ids, names), collapse="\n")
+  topics_html =  paste(tab_content_html(ids, topics), collapse="\n")
+  css = paste(get_css(ids), collapse="\n")
+
+  TEMPLATE = system.file("template/template.html", package="topicbrowser", mustWork=T)
+  html = readChar(TEMPLATE, file.info(TEMPLATE)$size)
+  html = gsub("\\$INDEX\\$", index, html)
+  html = gsub("\\$TABS\\$", tabs_html, html)
+  html = gsub("\\$TOPICS\\$", topics_html, html)
+  html = gsub("\\$CSS\\$", css, html)
+  html
+}
+
+tab_content_html <- function(id, content) {
+  paste('<div class="tab-pane fade" id="', id, '">', content, '</div>', sep="")
+}
+
+tab_html <- function(id, name) {
+  paste('<li><a href="#', id, '" role="tab" data-toggle="tab">', name, '</a></li>', sep="")
+}
 
 #' Render the index page
 #' @param topics_per_term: a matrix of terms by topics
@@ -58,7 +100,7 @@ createTopicBrowser <- function(m, terms, documents, meta, folder_name=NULL, topi
 render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, date_interval='year') {
   TEMPLATE = system.file("template/index.Rmd", package="topicbrowser", mustWork=T)
   css = get_css(topic_ids)
-  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T)
+  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T, fragment.only=T)
 }
 
 #' Render a single topic
@@ -71,6 +113,7 @@ render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, da
 #' @param date_interval: optional date interval to use for time graphs
 #' @return a raw html string (character)
 render_topic <- function(topic_id, tokens_topics, meta, topics_per_doc, topics_per_term, nmaxdoc=10, date_interval='year') {
+  message("Rendering topic ", topic_id)
   topicass = topics_per_doc[topic_id,]
   docs = names(head(topicass[order(-topicass)], n=nmaxdoc))
   
@@ -83,7 +126,7 @@ render_topic <- function(topic_id, tokens_topics, meta, topics_per_doc, topics_p
   css = get_css(rownames(topics_per_doc))
 
   TEMPLATE = system.file("template/topic.Rmd", package="topicbrowser", mustWork=T)
-  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T)
+  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T, fragment.only=T)
 }
 
 #' Render a single article
@@ -115,12 +158,12 @@ tagTokens <- function(tokens, topics){
   tokens = gsub("`", "'", tokens)
 
   # add hrefs
-  tokens = ifelse(is.na(topics), tokens, paste("<a href='", topic_filename(topics), "'>", tokens, "</a>", sep=""))
+  tokens = ifelse(is.na(topics), tokens, paste("<a href='#'>", tokens, "</a>", sep=""))
   # add span class and title
   tokens = paste("<span",
                  ifelse(is.na(topics), 
                         " class='notopic'",
-                        paste(" class='t", topics, "' title='", topics, "'", sep="")),
+                        paste(" onclick='showTab(",topics,")' class='t", topics, "' title='", topics, "'", sep="")),
                  ">", tokens, "</span>", sep="")
   tokens
 }
@@ -131,7 +174,7 @@ get_css <- function(topic_ids) {
   CSS_TEMPLATE = system.file("template/style.css", package="topicbrowser", mustWork=T)
   css = readLines(CSS_TEMPLATE, warn=F)
   colo = substr(rainbow(length(topic_ids)), 1,7)
-  colorcss = paste(".t", topic_ids, " {background-color: ",colo, "}", sep="")
+  colorcss = paste(".", topic_ids, " {background-color: ",colo, "}", sep="")
   c(css, colorcss)
 }
 
