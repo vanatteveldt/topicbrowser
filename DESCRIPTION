@@ -7,7 +7,8 @@ Maintainer: Wouter van Atteveldt <wouter@vanatteveldt.com>
 Depends: RColorBrewer,
   wordcloud,
   Matrix,
-  reshape2
+  reshape2,
+  knitr
 Description: Browse a topic model fit as a set of HTML pages
 License: MIT
 URL: http://github.com/vanatteveldt/topicbrowser

@@ -22,7 +22,7 @@ createTopicBrowser <- function(m, terms, documents, meta, folder_name=NULL, topi
 
   # create topic browser
   if (is.null(folder_name)) folder_name=tempdir()
-  opts_knit$set(base.dir = folder_name)
+  #opts_knit$set(base.dir = folder_name)
   message("Saving pictures to ", opts_knit$get("base.dir"))
   
   topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
