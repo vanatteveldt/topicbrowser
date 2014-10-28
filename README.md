@@ -4,7 +4,7 @@ Browse LDA Topic Models
 This package allows you to create a set of HTML files to browse a topic model.
 It creates a word cloud and time-graph per topic, and annotates a selection of documents with the topic for each word.
 
-See the [example output](https://cdn.rawgit.com/vanatteveldt/topicbrowser/master/sotu/index.html) for a collection of State of the Union addresses.
+See the [the example](http://rpubs.com/vanatteveldt/topicbrowser) for a collection of State of the Union addresses.
 
 Installing 
 ----
@@ -73,23 +73,32 @@ With these data, you can create a topic browser as follows:
 
 
 ```r
-output = file.path(tempdir(), "topics")
-createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, folder_name=output)
+output = tempfile(fileext = ".html")  
+createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, output = output)
 ```
 
 ```
-## Saving pictures to /tmp/Rtmpshv1IU/topics
-## Rendering index page to /tmp/Rtmpshv1IU/topics/index.html
-## Rendering topic 1 to /tmp/Rtmpshv1IU/topics/t1.html
-## Rendering topic 2 to /tmp/Rtmpshv1IU/topics/t2.html
-## Rendering topic 3 to /tmp/Rtmpshv1IU/topics/t3.html
-## Rendering topic 4 to /tmp/Rtmpshv1IU/topics/t4.html
-## Rendering topic 5 to /tmp/Rtmpshv1IU/topics/t5.html
-## Rendering topic 6 to /tmp/Rtmpshv1IU/topics/t6.html
-## Rendering topic 7 to /tmp/Rtmpshv1IU/topics/t7.html
-## Rendering topic 8 to /tmp/Rtmpshv1IU/topics/t8.html
-## Rendering topic 9 to /tmp/Rtmpshv1IU/topics/t9.html
-## Rendering topic 10 to /tmp/Rtmpshv1IU/topics/t10.html
+## Rendering index page
+## Rendering topic 1
+## Rendering topic 2
+## Rendering topic 3
+## Rendering topic 4
+## Rendering topic 5
+## Rendering topic 6
+## Rendering topic 7
+## Rendering topic 8
+## Rendering topic 9
+## Rendering topic 10
+## HTML written to /tmp/RtmpSiEDec/file3a2e6af5d1bb.html
 ```
 
-This produces the results shown in the [sotu](https://cdn.rawgit.com/vanatteveldt/topicbrowser/master/sotu/index.html) folder
+You can also publish the output file directly using `markdown::rpubsupload`:
+
+
+```r
+library(markdown)
+result = rpubsUpload("Example topic browser", output)
+browseURL(result$continueUrl)
+```
+
+This produces the results shown in the [the example](http://rpubs.com/vanatteveldt/topicbrowser)

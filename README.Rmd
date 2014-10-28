@@ -51,3 +51,5 @@ browseURL(result$continueUrl)
 ```
 
 This produces the results shown in the [the example](http://rpubs.com/vanatteveldt/topicbrowser)
+
+<!-- library(knitr); knit("README.Rmd") -->
