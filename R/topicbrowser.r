@@ -39,29 +39,12 @@ createTopicBrowser <- function(m, terms, documents, meta, topic_ids=1:m@k, date_
   
   if (!is.null(output)) {
     cat(html, file=output)
-    closeAllConnections() 
     if (browse) browseURL(output)
     message("HTML written to ", output)
     invisible(output)
   } else {
     html
   }
-}
-
-publish <- function(html_file=NULL, html=NULL, title="Topic browser", id=NULL) {
-  if (is.null(html_file)) {
-    html_file = tempfile(fileext = ".html")
-    message("Saving html to ", html_file)
-    cat(html, file=html_file)  
-    closeAllConnections() 
-  }
-  message("Publishing ", html_file)
-  result = if (is.null(id))  rpubsUpload(title, html_file) else  rpubsUpload(title, html_file, id=id)
-  if (is.null(result$continueUrl))  stop(result$error)
-  if (interactive()) browseURL(result$continueUrl)
-  message("Please visit ",result$continueUrl, " to finish publication")
-  message("To update this topic browser later, use publish(... ,id='",result$id,"')")
-  invisible(result)
 }
 
 ### HTML rendering
