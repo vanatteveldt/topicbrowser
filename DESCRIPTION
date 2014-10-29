@@ -8,8 +8,8 @@ Depends: RColorBrewer,
   wordcloud,
   Matrix,
   reshape2,
-  knitr,
-  markdown
+  markdown,
+  base64
 Description: Browse a topic model fit as a set of HTML pages
 License: MIT
 URL: http://github.com/vanatteveldt/topicbrowser

@@ -38,8 +38,7 @@ head(meta)
 With these data, you can create a topic browser as follows:
 
 ```{r warning=FALSE, fig.keep='none'}
-output = tempfile(fileext = ".html")  
-createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, output = output)
+output = createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta)
 ```
 
 You can also publish the output file directly using `markdown::rpubsupload`:

@@ -13,56 +13,75 @@
 #' @return the html generated or (invisible) the filename
 #' @export
 createTopicBrowser <- function(m, terms, documents, meta, topic_ids=1:m@k, date_interval='year', words=terms, output=NULL, browse=interactive()) {
+  if (is.null(output)) {
+    output = tempfile("topicbrowser_", fileext = ".html")
+    message("Writing html to ", output)
+  }
+  
+  message("Preparing variables")
+  # consolidate terms,documets,words in one data frame, filter on existing metadata, and add rank id
+  keep = documents %in% meta$id
+  tokens = data.frame(id=1:sum(keep), term=terms[keep], aid=documents[keep], word=words[keep])
+  
+  # build aid / term / topic triplet frame and topics x {doc, term} matrices
   wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
                                term = m@terms[m@wordassignments$j], 
                                topic = m@wordassignments$v)
-  tokens_topics = data.frame(id=1:length(terms), term=terms, aid=documents, word=words)
-  tokens_topics = merge(tokens_topics, wordassignments, all.x=T) # match by the names for the article_id and term columns. Be sure to use all.x=T, or you'll drop all the unassigned terms
-  tokens_topics = tokens_topics[order(tokens_topics$aid, tokens_topics$id), ]
-
-  # create topic browser
-  # opts_knit$set(base.dir = tempdir())
-  # message("Saving pictures to ", opts_knit$get("base.dir"))
+  wordassignments = wordassignments[wordassignments$aid %in% meta$id, ]
   
   topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
   topics_per_term = acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
   
+  # order meta for plots
   meta = meta[match(colnames(topics_per_doc), meta$id),]
-  #topicOverviewHtml(topics_per_term, topics_per_doc, meta, folder_name, topic_ids=topic_ids, date_interval=date_interval)
   
-  message("Rendering index page")
-  index = render_overview(topics_per_term, topics_per_doc, meta, topic_ids)
+  sink(output)
+  tryCatch(render_html(wordassignments, tokens, topics_per_term, topics_per_doc, meta, topic_ids, date_interval), 
+           finally=sink())
   
-  topics = lapply(topic_ids, render_topic, tokens_topics, meta, topics_per_doc, topics_per_term)
-  
-  html = create_html(index, topics)
-  
-  if (!is.null(output)) {
-    cat(html, file=output)
-    if (browse) browseURL(output)
-    message("HTML written to ", output)
-    invisible(output)
-  } else {
-    html
-  }
+  if (browse) browseURL(output)
+  message("HTML written to ", output)
+  invisible(output)
 }
 
 ### HTML rendering
 
-create_html <- function(index, topics) {
-  ids = paste("t", 1:length(topics), sep="")
-  names = paste("Topic", 1:length(topics))
-  tabs_html = paste(tab_html(ids, names), collapse="\n")
-  topics_html =  paste(tab_content_html(ids, topics), collapse="\n")
-  css = paste(get_css(ids), collapse="\n")
-
+render_html <- function(wordassignments, tokens, topics_per_term, topics_per_doc, meta, topic_ids, date_interval) {
   TEMPLATE = system.file("template/template.html", package="topicbrowser", mustWork=T)
   html = readChar(TEMPLATE, file.info(TEMPLATE)$size)
-  html = gsub("\\$INDEX\\$", index, html)
-  html = gsub("\\$TABS\\$", tabs_html, html)
-  html = gsub("\\$TOPICS\\$", topics_html, html)
-  html = gsub("\\$CSS\\$", css, html)
-  html
+  css = paste(get_css(topic_ids), collapse="\n")
+  html = gsub("$CSS$", css, html, fixed = T)
+  
+  parts = unlist(strsplit(html, "$CONTENT$", fixed = T))
+  #header
+  cat(parts[1])
+  
+  # tabs
+  cat('<ul class="nav nav-tabs" role="tablist" id="topictab">\n')
+  cat('<li class="active"><a href="#home" role="tab" data-toggle="tab">Overview</a></li>\n')
+  for (topic_id in topic_ids) 
+    cat('<li><a href="#t', topic_id, '" role="tab" data-toggle="tab">Topic ', topic_id, '</a></li>\n', sep = "")
+  cat('</ul>\n')
+  
+  # content
+  cat('<div class="tab-content">\n')
+  cat('<div class="tab-pane fade in active" id="home">\n')
+  message("Rendering overview")
+  render_overview(topics_per_term, topics_per_doc, meta, topic_ids, date_interval)
+  cat('</div>\n')
+  
+  for (topic_id in topic_ids) {
+    message("Rendering topic ", topic_id)
+    cat('<div class="tab-pane fade in" id="t',topic_id,'">\n', sep="")
+    render_topic(wordassignments, topics_per_term, topics_per_doc, meta, topic_id, date_interval, tokens)
+    cat('</div>\n')
+  }
+  
+  cat('</div>\n')
+  
+  # footer
+  cat(parts[2])
+  
 }
 
 tab_content_html <- function(id, content) {
@@ -81,10 +100,24 @@ tab_html <- function(id, name) {
 #' @param date_interval: optional date interval to use for time graphs
 #' @return a raw html string (character)
 render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, date_interval='year') {
-  TEMPLATE = system.file("template/index.Rmd", package="topicbrowser", mustWork=T)
-  css = get_css(topic_ids)
-  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T, fragment.only=T)
+  for(topic_id in topic_ids){
+    cat('<a href="#" onclick="showTab(', topic_id, ');">', sep='')
+    png  = plot_topic_to_file(300, topics_per_term, topics_per_doc, meta, topic_id, date_interval)
+    cat(img(png))
+    cat("</a>")
+  }
 }
+
+#' plot a topic overview to a file and return the file name. See plot.topicoverview for arguments
+plot_topic_to_file <- function(size=500,  topics_per_term, topics_per_doc, meta, topic_id, date_interval) {
+  pattern = paste("topic", topic_id, "_", sep="")
+  fn = tempfile(fileext = ".png", pattern=pattern)
+  png(filename = fn, width = size, height = size)
+  tryCatch(plot.topicoverview(topics_per_term, topics_per_doc, meta$date, topic_id, date_interval),
+           finally=dev.off())
+  fn
+}
+
 
 #' Render a single topic
 #' @param topic_id: the topic id to render
@@ -95,21 +128,14 @@ render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, da
 #' @param nmaxdoc: the number of top documents to show
 #' @param date_interval: optional date interval to use for time graphs
 #' @return a raw html string (character)
-render_topic <- function(topic_id, tokens_topics, meta, topics_per_doc, topics_per_term, nmaxdoc=10, date_interval='year') {
-  message("Rendering topic ", topic_id)
+render_topic <- function(wordassignments, topics_per_term, topics_per_doc, meta, topic_id, date_interval, tokens, nmaxdoc=10) {
+  png = plot_topic_to_file(500, topics_per_term, topics_per_doc, meta, topic_id, date_interval)
+  cat(img(png))
+  
   topicass = topics_per_doc[topic_id,]
   docs = names(head(topicass[order(-topicass)], n=nmaxdoc))
   
-  render = function(aid) {
-    tt = tokens_topics[tokens_topics$aid == aid, ]
-    render_article(tt$word, tt$topic, meta[meta$id == aid,])
-  }
-  
-  top_articles = lapply(docs, render)
-  css = get_css(rownames(topics_per_doc))
-
-  TEMPLATE = system.file("template/topic.Rmd", package="topicbrowser", mustWork=T)
-  knit2html(text=readLines(TEMPLATE, warn=F), stylesheet=css, quiet = T, fragment.only=T)
+  for (doc in docs) render_article(doc, tokens, wordassignments, meta, 100)
 }
 
 #' Render a single article
@@ -119,11 +145,23 @@ render_topic <- function(topic_id, tokens_topics, meta, topics_per_doc, topics_p
 #' @param meta: a 1-row data frame containing meta information
 #' @param fragment.only: passed to knit2html (if T, do not output html header etc)
 #' @return a raw html character vector
-render_article <- function(terms, topics, meta, fragment.only=T) {
-  TEMPLATE = system.file("template/article.Rmd", package="topicbrowser", mustWork=T)
-  tokens = tagTokens(terms, topics)
-  out = knit2html(text=readLines(TEMPLATE, warn=F), fragment.only=fragment.only, quiet = T)
-  out
+render_article <- function(aid, tokens, wordassignments, meta, maxwords=NULL) {
+  # header
+  cat('<h3>', aid, '</h3>')
+  
+  # meta
+  cat('<table>')
+  for (name in colnames(meta)) 
+    cat('<tr><th>', name, '</th><td>', as.character(meta[meta$id == aid, name]), '</td></tr>')
+  cat('</table>')
+  
+  # render words
+  cap <- function(x, n) if (is.null(n)) x else head(x,n)
+  tok = tokens[tokens$aid == aid, ]
+  tok = tok[cap(order(tok$id), maxwords), ]
+  wa = wordassignments[wordassignments$aid == aid, c("term", "topic")]
+  topics = wa$topic[match(tok$term, wa$term)]
+  cat(tagTokens(tok$word, topics))
 }
 
 ### HTML functions
@@ -157,7 +195,7 @@ get_css <- function(topic_ids) {
   CSS_TEMPLATE = system.file("template/style.css", package="topicbrowser", mustWork=T)
   css = readLines(CSS_TEMPLATE, warn=F)
   colo = substr(rainbow(length(topic_ids)), 1,7)
-  colorcss = paste(".", topic_ids, " {background-color: ",colo, "}", sep="")
+  colorcss = paste(".t", topic_ids, " {background-color: ",colo, "}", sep="")
   c(css, colorcss)
 }
 
