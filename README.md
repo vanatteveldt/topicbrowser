@@ -73,12 +73,13 @@ With these data, you can create a topic browser as follows:
 
 
 ```r
-output = tempfile(fileext = ".html")  
-createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, output = output)
+output = createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta)
 ```
 
 ```
-## Rendering index page
+## Writing html to /tmp/Rtmp7o5E48/topicbrowser_3f047fbf0d1e.html
+## Preparing variables
+## Rendering overview
 ## Rendering topic 1
 ## Rendering topic 2
 ## Rendering topic 3
@@ -89,7 +90,7 @@ createTopicBrowser(m, tokens$lemma, tokens$aid, words=tokens$word, meta=meta, ou
 ## Rendering topic 8
 ## Rendering topic 9
 ## Rendering topic 10
-## HTML written to /tmp/RtmpSiEDec/file3a2e6af5d1bb.html
+## HTML written to /tmp/Rtmp7o5E48/topicbrowser_3f047fbf0d1e.html
 ```
 
 You can also publish the output file directly using `markdown::rpubsupload`:
@@ -102,3 +103,5 @@ browseURL(result$continueUrl)
 ```
 
 This produces the results shown in the [the example](http://rpubs.com/vanatteveldt/topicbrowser)
+
+<!-- library(knitr); knit("README.Rmd") -->
