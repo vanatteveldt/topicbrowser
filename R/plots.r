@@ -69,3 +69,30 @@ plot.topicoverview <- function(topic_term_matrix, topic_document_matrix, date_va
   plot.wordcloud(topic_term_matrix, topic_nr = topic_nr, wordsize_scale = wordsize_scale)
   par(mfrow = c(1, 1), mar = c(3, 3, 3, 3))
 }
+
+
+prepare.topics.plot.values <- function(document_sums, break_var, topic_nr, pct=F, value='total', filter=NULL){
+  hits = document_sums[topic_nr,]
+  d = aggregate(hits, by=list(break_var=break_var), FUN='sum') 
+  if(value == 'relative'){
+    total_hits = colSums(document_sums)  
+    totals = aggregate(total_hits, by=list(break_var=break_var), FUN='sum')
+    d$x = d$x / totals$x
+  }
+  if(pct == T) d$x = d$x / sum(d$x)
+  d
+}
+
+#' Plots topic values per category
+topics.plot.category <- function(document_sums, topic_nr, category_var, pct=T, value='relative'){
+  p = par(mar=c(3,3,3,1))
+  d = prepare.topics.plot.values(document_sums, break_var=as.character(category_var), topic_nr=topic_nr, pct=pct, value=value)
+  colnames(d) = c('category','value')
+  barplot(as.matrix(t(d[,c('value')])), main='', beside=TRUE,horiz=FALSE,
+          density=NA,
+          col='darkgrey',
+          xlab='',
+          ylab="",
+          axes=T, names.arg=d$category, cex.names=1, cex.axis=0.7, adj=1, las=2)
+  par(p)
+}

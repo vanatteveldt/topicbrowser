@@ -12,14 +12,19 @@
 #' @param output: an optional file name to write the browser html to
 #' @return the html generated or (invisible) the filename
 #' @export
-createTopicBrowser <- function(m, terms, documents, meta, topic_ids=1:m@k, date_interval='year', words=terms, output=NULL, browse=interactive()) {
-  if (is.null(output)) {
-    output = tempfile("topicbrowser_", fileext = ".html")
-    message("Writing html to ", output)
-  }
-  
+createTopicBrowser <- function(x, terms=NULL, documents=NULL, meta=NULL, topic_ids=1:m@k, 
+                               date_interval='year', words=terms, output=NULL, browse=interactive()) {
   message("Preparing variables")
-  # consolidate terms,documets,words in one data frame, filter on existing metadata, and add rank id
+  info = if (class(x) == "list") x else clusterinfo(m, terms, documents, meta, topic_ids, words, date_interval)
+    
+  
+  url = wrap_html(render_html(info), output=output)
+  
+  if (browse) browseURL(url)
+  invisible(url)
+}
+
+clusterinfo <- function(m, terms, documents, meta, topic_ids=1:m@k, words=terms, date_interval='year') {
   keep = documents %in% meta$id
   tokens = data.frame(id=1:sum(keep), term=terms[keep], aid=documents[keep], word=words[keep])
   
@@ -34,32 +39,47 @@ createTopicBrowser <- function(m, terms, documents, meta, topic_ids=1:m@k, date_
   
   # order meta for plots
   meta = meta[match(colnames(topics_per_doc), meta$id),]
-  
-  sink(output)
-  tryCatch(render_html(wordassignments, tokens, topics_per_term, topics_per_doc, meta, topic_ids, date_interval), 
-           finally=sink())
-  
-  if (browse) browseURL(output)
-  message("HTML written to ", output)
-  invisible(output)
+  list(tokens=tokens, wordassignments=wordassignments, topics_per_doc=topics_per_doc, topics_per_term=topics_per_term, 
+       topic_ids=topic_ids, meta=meta, date_interval=date_interval)
 }
 
 ### HTML rendering
 
-render_html <- function(wordassignments, tokens, topics_per_term, topics_per_doc, meta, topic_ids, date_interval) {
+wrap_html <- function(wrapped, output=NULL) {
+  if (is.null(output)) {
+    output = tempfile("topicbrowser_", fileext = ".html")
+    message("Writing html to ", output)
+  }
+  sink(output)
+  tryCatch({
+    cat(html_header(topic_ids))
+    force(wrapped)
+    cat(html_footer())
+  }, finally=sink())
+  output
+}
+
+html_header <- function(topic_ids) {
   TEMPLATE = system.file("template/template.html", package="topicbrowser", mustWork=T)
   html = readChar(TEMPLATE, file.info(TEMPLATE)$size)
   css = paste(get_css(topic_ids), collapse="\n")
-  html = gsub("$CSS$", css, html, fixed = T)
-  
   parts = unlist(strsplit(html, "$CONTENT$", fixed = T))
-  #header
-  cat(parts[1])
-  
+  footer = parts[1]
+  gsub("$CSS$", css, footer, fixed = T)
+}
+
+html_footer <- function() {
+  TEMPLATE = system.file("template/template.html", package="topicbrowser", mustWork=T)
+  html = readChar(TEMPLATE, file.info(TEMPLATE)$size)
+  parts = unlist(strsplit(html, "$CONTENT$", fixed = T))
+  parts[2]
+}
+
+render_html <- function(info) {
   # tabs
   cat('<ul class="nav nav-tabs" role="tablist" id="topictab">\n')
   cat('<li class="active"><a href="#home" role="tab" data-toggle="tab">Overview</a></li>\n')
-  for (topic_id in topic_ids) 
+  for (topic_id in info$topic_ids) 
     cat('<li><a href="#t', topic_id, '" role="tab" data-toggle="tab">Topic ', topic_id, '</a></li>\n', sep = "")
   cat('</ul>\n')
   
@@ -67,21 +87,16 @@ render_html <- function(wordassignments, tokens, topics_per_term, topics_per_doc
   cat('<div class="tab-content">\n')
   cat('<div class="tab-pane fade in active" id="home">\n')
   message("Rendering overview")
-  render_overview(topics_per_term, topics_per_doc, meta, topic_ids, date_interval)
+  render_overview(info)
   cat('</div>\n')
   
-  for (topic_id in topic_ids) {
+  for (topic_id in info$topic_ids) {
     message("Rendering topic ", topic_id)
     cat('<div class="tab-pane fade in" id="t',topic_id,'">\n', sep="")
-    render_topic(wordassignments, topics_per_term, topics_per_doc, meta, topic_id, date_interval, tokens)
+    render_topic(topic_id, info)
     cat('</div>\n')
-  }
-  
+  }  
   cat('</div>\n')
-  
-  # footer
-  cat(parts[2])
-  
 }
 
 tab_content_html <- function(id, content) {
@@ -99,25 +114,27 @@ tab_html <- function(id, name) {
 #' @param topic_ids: a vector of topic ids to render
 #' @param date_interval: optional date interval to use for time graphs
 #' @return a raw html string (character)
-render_overview <- function(topics_per_term, topics_per_doc, meta, topic_ids, date_interval='year') {
-  for(topic_id in topic_ids){
+render_overview <- function(info) {
+  for(topic_id in info$topic_ids){
     cat('<a href="#" onclick="showTab(', topic_id, ');">', sep='')
-    png  = plot_topic_to_file(300, topics_per_term, topics_per_doc, meta, topic_id, date_interval)
-    cat(img(png))
+    cat_plot(plot.topicoverview(info$topics_per_term, info$topics_per_doc, info$meta$date, topic_id, info$date_interval), width=300)
     cat("</a>")
   }
 }
 
-#' plot a topic overview to a file and return the file name. See plot.topicoverview for arguments
-plot_topic_to_file <- function(size=500,  topics_per_term, topics_per_doc, meta, topic_id, date_interval) {
-  pattern = paste("topic", topic_id, "_", sep="")
-  fn = tempfile(fileext = ".png", pattern=pattern)
-  png(filename = fn, width = size, height = size)
-  tryCatch(plot.topicoverview(topics_per_term, topics_per_doc, meta$date, topic_id, date_interval),
-           finally=dev.off())
-  fn
+#' Plot the plot in plotfun and cat as a base64 encoded <img>
+cat_plot <- function(plotfun, ...)  {
+  png  = plot_to_file(plotfun, ...)
+  cat(img(png))  
 }
 
+#' Plot the plot in plotfun to a tempfile and return the filename
+plot_to_file <- function(plotfun, width=500, height=width) {
+  fn = tempfile(fileext = ".png", pattern="plot_")
+  png(filename = fn, width = width, height = height)
+  tryCatch(force(plotfun), finally=dev.off())
+  fn
+}
 
 #' Render a single topic
 #' @param topic_id: the topic id to render
@@ -128,14 +145,23 @@ plot_topic_to_file <- function(size=500,  topics_per_term, topics_per_doc, meta,
 #' @param nmaxdoc: the number of top documents to show
 #' @param date_interval: optional date interval to use for time graphs
 #' @return a raw html string (character)
-render_topic <- function(wordassignments, topics_per_term, topics_per_doc, meta, topic_id, date_interval, tokens, nmaxdoc=10) {
-  png = plot_topic_to_file(500, topics_per_term, topics_per_doc, meta, topic_id, date_interval)
-  cat(img(png))
+render_topic <- function(topic_id, info, nmaxdoc=10) {
+  cat("<h1>Topic", topic_id, "</h1>")
+  cat_plot(plot.wordcloud(info$topics_per_term, topic_nr = topic_id, wordsize_scale = .5), width=500)
+  cat("<h2>Over time</h3>")
+  cat_plot(plot.time(info$topics_per_doc, topic_nr = topic_id, time_var =info$meta$date, date_interval = info$date_interval, value = 'relative'),
+           width=500, height=200)
+  for (var in setdiff(colnames(info$meta), c("id", "date"))) {
+    cat("<h2>Per",var,"</h2>")
+    cat_plot(topics.plot.category(info$topics_per_doc, topic_id, info$meta[[var]]),
+             width=500, height=200)
+  }
   
-  topicass = topics_per_doc[topic_id,]
+  cat("<h2>Articles</h2>")
+  topicass = info$topics_per_doc[topic_id,]
   docs = names(head(topicass[order(-topicass)], n=nmaxdoc))
   
-  for (doc in docs) render_article(doc, tokens, wordassignments, meta, 100)
+  for (doc in docs) render_article(doc, info, maxwords=100)
 }
 
 #' Render a single article
@@ -145,21 +171,21 @@ render_topic <- function(wordassignments, topics_per_term, topics_per_doc, meta,
 #' @param meta: a 1-row data frame containing meta information
 #' @param fragment.only: passed to knit2html (if T, do not output html header etc)
 #' @return a raw html character vector
-render_article <- function(aid, tokens, wordassignments, meta, maxwords=NULL) {
+render_article <- function(doc, info, maxwords=NULL) {
   # header
-  cat('<h3>', aid, '</h3>')
+  cat('<h3>', doc, '</h3>')
   
   # meta
   cat('<table>')
-  for (name in colnames(meta)) 
-    cat('<tr><th>', name, '</th><td>', as.character(meta[meta$id == aid, name]), '</td></tr>')
+  for (name in colnames(info$meta)) 
+    cat('<tr><th>', name, '</th><td>', as.character(info$meta[info$meta$id == doc, name]), '</td></tr>')
   cat('</table>')
   
   # render words
   cap <- function(x, n) if (is.null(n)) x else head(x,n)
-  tok = tokens[tokens$aid == aid, ]
+  tok = info$tokens[tokens$aid == doc, ]
   tok = tok[cap(order(tok$id), maxwords), ]
-  wa = wordassignments[wordassignments$aid == aid, c("term", "topic")]
+  wa = info$wordassignments[info$wordassignments$aid == doc, c("term", "topic")]
   topics = wa$topic[match(tok$term, wa$term)]
   cat(tagTokens(tok$word, topics))
 }
