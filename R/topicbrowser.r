@@ -64,14 +64,14 @@ clusterinfo <- function(m, terms, documents, meta, topic_ids=1:m@k, words=terms,
 #' @param output an optional filename to output to. If NULL, a tempfile will be used
 #' @return the output filename
 #' @export
-wrap_html <- function(wrapped, output=NULL) {
+wrap_html <- function(wrapped, info, output=NULL) {
   if (is.null(output)) {
     output = tempfile("topicbrowser_", fileext = ".html")
     message("Writing html to ", output)
   }
   sink(output)
   tryCatch({
-    cat(html_header(topic_ids))
+    cat(html_header(info$topic_ids))
     force(wrapped)
     cat(html_footer())
   }, finally=sink())
@@ -211,7 +211,7 @@ render_article <- function(doc, info, maxwords=NULL) {
   
   # render words
   cap <- function(x, n) if (is.null(n)) x else head(x,n)
-  tok = info$tokens[tokens$aid == doc, ]
+  tok = info$tokens[info$tokens$aid == doc, ]
   tok = tok[cap(order(tok$id), maxwords), ]
   wa = info$wordassignments[info$wordassignments$aid == doc, c("term", "topic")]
   topics = wa$topic[match(tok$term, wa$term)]
