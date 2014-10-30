@@ -18,7 +18,7 @@ createTopicBrowser <- function(x, terms=NULL, documents=NULL, meta=NULL, topic_i
   info = if (class(x) == "list") x else clusterinfo(m, terms, documents, meta, topic_ids, words, date_interval)
     
   
-  url = wrap_html(render_html(info), output=output)
+  url = wrap_html(render_html(info),info = info, output=output)
   
   if (browse) browseURL(url)
   invisible(url)
