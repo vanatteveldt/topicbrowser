@@ -3,28 +3,15 @@
 \alias{render_topic}
 \title{Render a single topic}
 \usage{
-render_topic(topic_id, tokens_topics, meta, topics_per_doc, topics_per_term,
-  nmaxdoc = 10, date_interval = "year")
+render_topic(topic_id, info, nmaxdoc = 10)
 }
 \arguments{
 \item{topic_id:}{the topic id to render}
 
-\item{tokens_topics:}{a data frame with tokens (id, aid, term, word)}
-
-\item{meta:}{a data frame with meta information about the documents}
-
-\item{topics_per_term:}{a matrix of terms by topics}
-
-\item{topics_per_doc:}{a matrix of documents by topics}
-
-\item{nmaxdoc:}{the number of top documents to show}
-
-\item{date_interval:}{optional date interval to use for time graphs}
-}
-\value{
-a raw html string (character)
+\item{info}{the cluster_info object (list)}
 }
 \description{
-Render a single topic
+This function does not return the html, but rather cats it directly
+So you might wish to use wrap_html or sink to capture the output
 }
 

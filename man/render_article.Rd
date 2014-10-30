@@ -3,21 +3,15 @@
 \alias{render_article}
 \title{Render a single article}
 \usage{
-render_article(terms, topics, meta, fragment.only = T)
+render_article(doc, info, maxwords = NULL)
 }
 \arguments{
-\item{terms:}{a vector of words}
+\item{doc:}{the document id (dtm rowname) to render}
 
-\item{topics:}{a vector containing the topic of each word}
-
-\item{meta:}{a 1-row data frame containing meta information}
-
-\item{fragment.only:}{passed to knit2html (if T, do not output html header etc)}
-}
-\value{
-a raw html character vector
+\item{info}{the cluster_info object (list)}
 }
 \description{
-Render a single article
+This function does not return the html, but rather cats it directly
+So you might wish to use wrap_html or sink to capture the output
 }
 

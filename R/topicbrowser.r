@@ -24,6 +24,17 @@ createTopicBrowser <- function(x, terms=NULL, documents=NULL, meta=NULL, topic_i
   invisible(url)
 }
 
+#' Create a 'clusterinfo' object that can be used for the individual render methods
+#' 
+#' #' @param m: the fitted LDA model object from the topicmodels package
+#' @param terms: a vector of terms, which should be sorted in their original order and match m@@terms
+#' @param documents: a vector of the same length as terms, indicating the document of each term, matching m@@documents
+#' @param meta: a data frame with meta data about the documents, should have columns aid, headline, medium, and date (todo: make more flexible)
+#' @param topic_ids: optionally restrict output to a selection of topics
+#' @param date_interval: specify the interval for plotting the meta$data
+#' @param words: if given, use instead of terms for displaying document
+#' @return a list with tokens, wordassignments, and other items
+#' @export
 clusterinfo <- function(m, terms, documents, meta, topic_ids=1:m@k, words=terms, date_interval='year') {
   keep = documents %in% meta$id
   tokens = data.frame(id=1:sum(keep), term=terms[keep], aid=documents[keep], word=words[keep])
@@ -45,6 +56,14 @@ clusterinfo <- function(m, terms, documents, meta, topic_ids=1:m@k, words=terms,
 
 ### HTML rendering
 
+#' Wrap a call that 'cats' html fragments and save it as a html file with header and footer
+#' 
+#' Since R evaluates arguments lazily, call with the actual wrapped call, i.e. wrap_html(render_html(...))
+#' 
+#' @param wrapped the wrapped call
+#' @param output an optional filename to output to. If NULL, a tempfile will be used
+#' @return the output filename
+#' @export
 wrap_html <- function(wrapped, output=NULL) {
   if (is.null(output)) {
     output = tempfile("topicbrowser_", fileext = ".html")
@@ -75,6 +94,13 @@ html_footer <- function() {
   parts[2]
 }
 
+#' Render the tabbed html containing overview and individual tabs
+#' 
+#' This function does not return the html, but rather cats it directly
+#' So you might wish to use wrap_html or sink to capture the output
+#' 
+#' @param info the cluster_info object (list)
+#' @export
 render_html <- function(info) {
   # tabs
   cat('<ul class="nav nav-tabs" role="tablist" id="topictab">\n')
@@ -108,12 +134,12 @@ tab_html <- function(id, name) {
 }
 
 #' Render the index page
-#' @param topics_per_term: a matrix of terms by topics
-#' @param topics_per_doc: a matrix of documents by topics
-#' @param meta: a data frame with meta information about the documents
-#' @param topic_ids: a vector of topic ids to render
-#' @param date_interval: optional date interval to use for time graphs
-#' @return a raw html string (character)
+#' 
+#' This function does not return the html, but rather cats it directly
+#' So you might wish to use wrap_html or sink to capture the output
+#' 
+#' @param info the cluster_info object (list)
+#' @export
 render_overview <- function(info) {
   for(topic_id in info$topic_ids){
     cat('<a href="#" onclick="showTab(', topic_id, ');">', sep='')
@@ -137,14 +163,14 @@ plot_to_file <- function(plotfun, width=500, height=width) {
 }
 
 #' Render a single topic
+#' 
+#' This function does not return the html, but rather cats it directly
+#' So you might wish to use wrap_html or sink to capture the output
+#' 
+#' 
 #' @param topic_id: the topic id to render
-#' @param tokens_topics: a data frame with tokens (id, aid, term, word)
-#' @param meta: a data frame with meta information about the documents
-#' @param topics_per_term: a matrix of terms by topics
-#' @param topics_per_doc: a matrix of documents by topics
-#' @param nmaxdoc: the number of top documents to show
-#' @param date_interval: optional date interval to use for time graphs
-#' @return a raw html string (character)
+#' @param info the cluster_info object (list)
+#' @export
 render_topic <- function(topic_id, info, nmaxdoc=10) {
   cat("<h1>Topic", topic_id, "</h1>")
   cat_plot(plot.wordcloud(info$topics_per_term, topic_nr = topic_id, wordsize_scale = .5), width=500)
@@ -166,11 +192,13 @@ render_topic <- function(topic_id, info, nmaxdoc=10) {
 
 #' Render a single article
 #' 
-#' @param terms: a vector of words
-#' @param topics: a vector containing the topic of each word
-#' @param meta: a 1-row data frame containing meta information
-#' @param fragment.only: passed to knit2html (if T, do not output html header etc)
-#' @return a raw html character vector
+#' This function does not return the html, but rather cats it directly
+#' So you might wish to use wrap_html or sink to capture the output
+#' 
+#' 
+#' @param doc: the document id (dtm rowname) to render
+#' @param info the cluster_info object (list)
+#' @export
 render_article <- function(doc, info, maxwords=NULL) {
   # header
   cat('<h3>', doc, '</h3>')
