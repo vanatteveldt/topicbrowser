@@ -12,10 +12,10 @@
 #' @param output: an optional file name to write the browser html to
 #' @return the html generated or (invisible) the filename
 #' @export
-createTopicBrowser <- function(x, terms=NULL, documents=NULL, meta=NULL, topic_ids=1:m@k, 
+createTopicBrowser <- function(m, terms=NULL, documents=NULL, meta=NULL, topic_ids=1:m@k, 
                                date_interval='year', words=terms, output=NULL, browse=interactive()) {
   message("Preparing variables")
-  info = if (class(x) == "list") x else clusterinfo(m, terms, documents, meta, topic_ids, words, date_interval)
+  info = if (class(m) == "list") m else clusterinfo(m, terms, documents, meta, topic_ids, words, date_interval)
     
   
   url = wrap_html(render_html(info),info = info, output=output)
