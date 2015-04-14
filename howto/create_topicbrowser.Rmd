@@ -12,11 +12,10 @@ First, get Topicmodel data. To create a topicbrowser three elements are required
 
 ```{r}
 library(topicbrowser)
-
 data(sotu)
 head(sotu.tokens)
 head(sotu.meta)
-sotu.m
+sotu.lda_model
 ```
 
 The first step for creating the topicbrowser is to use the clusterinfo function. This creates a single list in which relevant information is combined. This approach has two advantages:
@@ -24,14 +23,14 @@ The first step for creating the topicbrowser is to use the clusterinfo function.
 2. Other methods for creating topicmodels can easily be integrated in the topicbrowser package. 
 
 ```{r}
-info = clusterinfo(m=sotu.m, terms=sotu.tokens$lemma, documents=sotu.tokens$aid, meta=sotu.meta)
+info = clusterinfo(sotu.lda_model, terms=sotu.tokens$lemma, documents=sotu.tokens$aid, meta=sotu.meta)
 names(info)
 ```
 
 We can now create a default topicbrowser using the createTopicBrowser function.   
 
 ```{r, message=F}
-output = createTopicBrowser(info)
+createTopicBrowser(info)
 ```
 
 
@@ -42,9 +41,9 @@ You might want to use different visualizations instead of the default wordcloud 
 Here are some of the `plotfunction` defaults included in this package. The input for these functions is the `info` object, and an integer representing which topic to plot.
 
 ```{r}
-pf.wordcloud_time(info, topic_nr=2) # the default visualization used for plotfunction.overview: wordcloud and time graph
-pf.wordcloud(info, topic_nr=2) # only wordcloud
-pf.time(info, topic_nr=2) # only time graph
+plot_wordcloud_time(clusterinfo=info, topic_nr=2, time_interval='year') # the default visualization used for plotfunction.overview: wordcloud and time graph
+plot_wordcloud(clusterinfo=info, topic_nr=2) # only wordcloud
+plot_time(clusterinfo=info, topic_nr=2, time_interval='year') # only time graph
 ```
 
 Note that the intervalls for the time graph are based on the date_interval parameter in the info list. This can either be changed when creating the info list using the clusterinfo function, or simply by modifying the info list. 
@@ -52,7 +51,7 @@ Note that the intervalls for the time graph are based on the date_interval param
 There are also several more advanced visualization function that depend on other packages we developed.
 
 ```{r}
-pf.semnet(info, topic_nr=1) # requires semnet package
+plot_semnet(info, topic_nr=1) # requires semnet package
 ```
 
 These plot functions can be given to the plotfunction arguments of the createTopicBrowser function. 
