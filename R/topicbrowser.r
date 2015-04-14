@@ -2,57 +2,73 @@
 #' 
 #' This will create a set of linked html pages to browse the given topic model
 #' 
-#' @param m: the fitted LDA model object from the topicmodels package
-#' @param terms: a vector of terms, which should be sorted in their original order and match m@@terms
-#' @param documents: a vector of the same length as terms, indicating the document of each term, matching m@@documents
-#' @param meta: a data frame with meta data about the documents, should have columns aid, headline, medium, and date (todo: make more flexible)
-#' @param topic_ids: optionally restrict output to a selection of topics
-#' @param date_interval: specify the interval for plotting the meta$data
-#' @param words: if given, use instead of terms for displaying document
-#' @param output: an optional file name to write the browser html to
+#' @param info The output of the \code{\link{clusterinfo}} function
+#' @param plotfunction.overview A standardized function (see the `pf.` functions). Determines how the topics in the general topic overview are visualized 
+#' @param plotfunction.pertopic A standardized function (see the `pf.` functions). Determines what information is visualized in the pages per topic. Can be a list of multiple functions, in which case multiple plots are made. 
+#' @param ... Parameters to be passed to the plotfunctions.
+#' @param output an optional file name to write the browser html to
+#' @param nmaxdoc an integer, indicating the maximum number of top articles to be printed for each topic. 
 #' @return the html generated or (invisible) the filename
 #' @export
-createTopicBrowser <- function(m, terms=NULL, documents=NULL, meta=NULL, topic_ids=1:m@k, 
-                               date_interval='year', words=terms, output=NULL, browse=interactive()) {
-  message("Preparing variables")
-  info = if (class(m) == "list") m else clusterinfo(m, terms, documents, meta, topic_ids, words, date_interval)
-    
-  
-  url = wrap_html(render_html(info),info = info, output=output)
-  
+createTopicBrowser <- function(info, 
+                               plotfunction.overview=pf.wordcloud, plotfunction.pertopic=c(pf.wordcloud, pf.topicdistribution), ...,  
+                               output=NULL, nmaxdoc=10, nmaxwords=100, browse=interactive(), topic_ids=1:nrow(info$topics_per_doc)) {
+  pf.parameters = list(...)
+  info$topic_ids = topic_ids
+  url = wrap_html(render_html(info, plotfunction.overview, plotfunction.pertopic, nmaxdoc, nmaxwords, pf.parameters),
+                  info = info, output=output)
   if (browse) browseURL(url)
   invisible(url)
 }
 
 #' Create a 'clusterinfo' object that can be used for the individual render methods
 #' 
-#' #' @param m: the fitted LDA model object from the topicmodels package
+#' @param m: the fitted LDA model object from the topicmodels package
 #' @param terms: a vector of terms, which should be sorted in their original order and match m@@terms
 #' @param documents: a vector of the same length as terms, indicating the document of each term, matching m@@documents
-#' @param meta: a data frame with meta data about the documents, should have columns aid, headline, medium, and date (todo: make more flexible)
-#' @param topic_ids: optionally restrict output to a selection of topics
-#' @param date_interval: specify the interval for plotting the meta$data
-#' @param words: if given, use instead of terms for displaying document
+#' @param words: if given, use instead of terms for displaying document. 
+#' @param meta: Optional meta data. Vectors or a dataframe of which the elements/rows match m@@documents. 
 #' @return a list with tokens, wordassignments, and other items
 #' @export
-clusterinfo <- function(m, terms, documents, meta, topic_ids=1:m@k, words=terms, date_interval='year') {
-  keep = documents %in% meta$id
-  tokens = data.frame(id=1:sum(keep), term=terms[keep], aid=documents[keep], word=words[keep])
+clusterinfo <- function(m, terms=NULL, documents=NULL, words=terms, meta=NULL) {
+  meta = as.data.frame(meta)
+  tokens = if(length(terms) > 0) data.frame(id=length(terms), term=terms, aid=documents, word=words) else NULL
   
   # build aid / term / topic triplet frame and topics x {doc, term} matrices
   wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
                                term = m@terms[m@wordassignments$j], 
                                topic = m@wordassignments$v)
-  wordassignments = wordassignments[wordassignments$aid %in% meta$id, ]
-  
   topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
   topics_per_term = acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
   
-  # order meta for plots
-  meta = meta[match(colnames(topics_per_doc), meta$id),]
-  list(tokens=tokens, wordassignments=wordassignments, topics_per_doc=topics_per_doc, topics_per_term=topics_per_term, 
-       topic_ids=topic_ids, meta=meta, date_interval=date_interval)
+  # order meta for plots  
+  list(tokens=tokens, wordassignments=wordassignments, topics_per_doc=topics_per_doc, topics_per_term=topics_per_term, meta=meta)
 }
+
+#' Extract a topic X document matrix from a topicmodels object
+#' 
+#' @param m a topic model in the format of the topicmodels package.
+#' @return a topic X document matrix
+#' @export
+topicsPerDoc <- function(m) {
+  wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
+                               term = m@terms[m@wordassignments$j], 
+                               topic = m@wordassignments$v)
+  acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
+}
+
+#' Extract a topic X term matrix from a topicmodels object
+#' 
+#' @param m a topic model in the format of the topicmodels package.
+#' @return a topic X term matrix
+#' @export
+topicsPerTerm <- function(m) {
+  wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
+                               term = m@terms[m@wordassignments$j], 
+                               topic = m@wordassignments$v)
+  acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
+}
+
 
 ### HTML rendering
 
@@ -101,7 +117,7 @@ html_footer <- function() {
 #' 
 #' @param info the cluster_info object (list)
 #' @export
-render_html <- function(info) {
+render_html <- function(info, plotfunction.overview, plotfunction.pertopic, nmaxdoc, nmaxwords, pf.parameters) {
   # tabs
   cat('<ul class="nav nav-tabs" role="tablist" id="topictab">\n')
   cat('<li class="active"><a href="#home" role="tab" data-toggle="tab">Overview</a></li>\n')
@@ -113,13 +129,13 @@ render_html <- function(info) {
   cat('<div class="tab-content">\n')
   cat('<div class="tab-pane fade in active" id="home">\n')
   message("Rendering overview")
-  render_overview(info)
+  render_overview(info, plotfunction.overview, pf.parameters)
   cat('</div>\n')
   
   for (topic_id in info$topic_ids) {
     message("Rendering topic ", topic_id)
     cat('<div class="tab-pane fade in" id="t',topic_id,'">\n', sep="")
-    render_topic(topic_id, info)
+    render_topic(topic_id, info, plotfunction.pertopic, nmaxdoc, nmaxwords, pf.parameters)
     cat('</div>\n')
   }  
   cat('</div>\n')
@@ -140,10 +156,17 @@ tab_html <- function(id, name) {
 #' 
 #' @param info the cluster_info object (list)
 #' @export
-render_overview <- function(info) {
+render_overview <- function(info, plotfunction, pf.parameters) {
   for(topic_id in info$topic_ids){
     cat('<a href="#" onclick="showTab(', topic_id, ');">', sep='')
-    cat_plot(plot.topicoverview(info$topics_per_term, info$topics_per_doc, info$meta$date, topic_id, info$date_interval), width=300)
+    
+    plotfunction_titled <- function(info, topic_nr){
+      plotfunction(info, topic_nr)
+      title(main=paste("Topic", topic_nr))
+    }
+    parameters = pf.parameters[names(pf.parameters) %in% names(as.list(args(plotfunction_titled)))]
+    parameters = c(parameters, list(info=info, topic_nr = topic_id))
+    cat_plot(do.call(plotfunction_titled, parameters), width=300)
     cat("</a>")
   }
 }
@@ -171,24 +194,21 @@ plot_to_file <- function(plotfun, width=500, height=width) {
 #' @param topic_id: the topic id to render
 #' @param info the cluster_info object (list)
 #' @export
-render_topic <- function(topic_id, info, nmaxdoc=10) {
+render_topic <- function(topic_id, info, plotfunction, nmaxdoc, nmaxwords, pf.parameters) {
   cat("<h1>Topic", topic_id, "</h1>")
-  cat_plot(plot.wordcloud(info$topics_per_term, topic_nr = topic_id, wordsize_scale = .5), width=500)
-  cat("<h2>Over time</h3>")
-  cat_plot(plot.time(info$topics_per_doc, topic_nr = topic_id, time_var =info$meta$date, date_interval = info$date_interval, value = 'relative'),
-           width=500, height=200)
-  for (var in setdiff(colnames(info$meta), c("id", "date"))) {
-    cat("<h2>Per",var,"</h2>")
-    cat_plot(topics.plot.category(info$topics_per_doc, topic_id, info$meta[[var]]),
-             width=500, height=200)
-  }
   
-  cat("<h2>Articles</h2>")
+  for(pfunc in c(plotfunction)) {
+    parameters = pf.parameters[names(pf.parameters) %in% names(as.list(args(pfunc)))]
+    parameters = c(parameters, list(info=info, topic_nr = topic_id))
+    cat_plot(do.call(pfunc, parameters), width=500, height=500)
+  }
+  cat("<h2>Top articles</h2>")
   topicass = info$topics_per_doc[topic_id,]
   docs = names(head(topicass[order(-topicass)], n=nmaxdoc))
   
-  for (doc in docs) render_article(doc, info, maxwords=100)
+  for (doc in docs) render_article(doc, info, maxwords=nmaxwords)
 }
+
 
 #' Render a single article
 #' 
@@ -206,16 +226,19 @@ render_article <- function(doc, info, maxwords=NULL) {
   # meta
   cat('<table>')
   for (name in colnames(info$meta)) 
-    cat('<tr><th>', name, '</th><td>', as.character(info$meta[info$meta$id == doc, name]), '</td></tr>')
+    cat('<tr><th>', name, '   </th><td>', as.character(info$meta[info$meta$id == doc, name]), '</td></tr>')
   cat('</table>')
   
+  
   # render words
-  cap <- function(x, n) if (is.null(n)) x else head(x,n)
-  tok = info$tokens[info$tokens$aid == doc, ]
-  tok = tok[cap(order(tok$id), maxwords), ]
-  wa = info$wordassignments[info$wordassignments$aid == doc, c("term", "topic")]
-  topics = wa$topic[match(tok$term, wa$term)]
-  cat(tagTokens(tok$word, topics))
+  if(!is.null(info$tokens)){
+    cap <- function(x, n) if (is.null(n)) x else head(x,n)
+    tok = info$tokens[info$tokens$aid == doc, ]
+    tok = tok[cap(order(tok$id), maxwords), ]
+    wa = info$wordassignments[info$wordassignments$aid == doc, c("term", "topic")]
+    topics = wa$topic[match(tok$term, wa$term)]
+    cat(tagTokens(tok$word, topics))
+  }
 }
 
 ### HTML functions
@@ -235,11 +258,9 @@ tagTokens <- function(tokens, topics){
   # add hrefs
   tokens = ifelse(is.na(topics), tokens, paste("<a href='#'>", tokens, "</a>", sep=""))
   # add span class and title
-  tokens = paste("<span",
-                 ifelse(is.na(topics), 
-                        " class='notopic'",
-                        paste(" onclick='showTab(",topics,")' class='t", topics, "' title='", topics, "'", sep="")),
-                 ">", tokens, "</span>", sep="")
+  stopics = topics[!is.na(topics)]
+  stokens = tokens[!is.na(topics)]
+  tokens[!is.na(topics)] = paste("<span", " onclick='showTab(",stopics,")' class='t", stopics, "' title='", stopics, "'", ">", stokens, "</span>", sep="")
   tokens
 }
 
@@ -248,7 +269,8 @@ tagTokens <- function(tokens, topics){
 get_css <- function(topic_ids) {
   CSS_TEMPLATE = system.file("template/style.css", package="topicbrowser", mustWork=T)
   css = readLines(CSS_TEMPLATE, warn=F)
-  colo = substr(rainbow(length(topic_ids)), 1,7)
+  colo = substr(rainbow(length(topic_ids), s=0.6,alpha=0.5), 1,7)
+
   colorcss = paste(".t", topic_ids, " {background-color: ",colo, "}", sep="")
   c(css, colorcss)
 }

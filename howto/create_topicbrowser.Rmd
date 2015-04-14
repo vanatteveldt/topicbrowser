@@ -1,0 +1,107 @@
+```{r, include=FALSE}
+opts_chunk$set(fig.path = "figures_topicbrowser/")
+```
+
+Creating a topicbrowser
+========================================================
+
+First, get Topicmodel data. To create a topicbrowser three elements are required:
+1. tokens: A data.frame in which each row is a token (word or lemma) in an article. There should be a column for unique article ids. Rows should be ordered in the same order as the words occur in the articles. To create token data, see manuals for tokenization. It is advised to use natural language processing (NLP) techniques to get stemmed or lemmatized tokens, and to be able to filter on part-of-speech tags. This can be obtained using free software such as nlp.core (english), frog (Dutch) and parzu (German).
+2. meta: A data.frame giving additional information per article. There should be an 'id' column that matches the article id column in the tokens data.frame. Label columns representing article date 'date' and use the `Date` format.
+3. topicmodel: A topicmodel in the format of the `topicmodels` package. See the `corpustools` package for a manual on how to create a topicmodel based on a the data.frame with tokens.
+
+```{r}
+library(topicbrowser)
+
+data(sotu)
+head(sotu.tokens)
+head(sotu.meta)
+sotu.m
+```
+
+The first step for creating the topicbrowser is to use the clusterinfo function. This creates a single list in which relevant information is combined. This approach has two advantages:
+1. It makes it easy to customize the visualizations in the topicbrowser.
+2. Other methods for creating topicmodels can easily be integrated in the topicbrowser package. 
+
+```{r}
+info = clusterinfo(m=sotu.m, terms=sotu.tokens$lemma, documents=sotu.tokens$aid, meta=sotu.meta)
+names(info)
+```
+
+We can now create a default topicbrowser using the createTopicBrowser function.   
+
+```{r, message=F}
+output = createTopicBrowser(info)
+```
+
+
+Customizing the topicbrowser
+========================================================
+You might want to use different visualizations instead of the default wordcloud and time graph. For this purpose, we can use the `plotfunction` parameters of the createTopicBrowser function. These parameters take as input special, standardized functions, that produce a plot based on the `info` object as created by the `clusterinfo` function. We developed several of such `plotfunction` functions (all starting with `pf.`) and it is easy to implement new ones yourself. 
+
+Here are some of the `plotfunction` defaults included in this package. The input for these functions is the `info` object, and an integer representing which topic to plot.
+
+```{r}
+pf.wordcloud_time(info, topic_nr=2) # the default visualization used for plotfunction.overview: wordcloud and time graph
+pf.wordcloud(info, topic_nr=2) # only wordcloud
+pf.time(info, topic_nr=2) # only time graph
+```
+
+Note that the intervalls for the time graph are based on the date_interval parameter in the info list. This can either be changed when creating the info list using the clusterinfo function, or simply by modifying the info list. 
+
+There are also several more advanced visualization function that depend on other packages we developed.
+
+```{r}
+pf.semnet(info, topic_nr=1) # requires semnet package
+```
+
+These plot functions can be given to the plotfunction arguments of the createTopicBrowser function. 
+* Plotfunction.overview takes a single function, and determines how the topic is visualized in on the overview page (showing all topics side by side). 
+* Plotfunction.pertopic takes one or more functions, which determine how the topic is visualised in the page per topic. Each function will result in a separate plot.
+
+Here is an example where the plotfunction.overview uses the default plotfunction (`pf.wordcloud_time`) and plotfunction.pertopic is given two functions: `pf.wordcloud_time` and `pf.semnet`
+
+```{r, message=FALSE}
+createTopicBrowser(info, plotfunction.pertopic=list(pf.wordcloud_time, pf.semnet))
+```
+
+
+
+Custom plot functions
+========================================================
+
+It is easy to make custom plot function. The only thing you need to do is create a function that wraps the script that produces the plot, in which the only parameters are the `info` list and `topic_nr`. For example, let's make a function to produce a histogram that shows how a topic is distributed over documents
+
+```{r}
+pf.topicdistribution <- function(info, topic_nr){
+  topic_pct_per_document = info$topics_per_doc[topic_nr,] / colSums(info$topics_per_doc)
+  par(mar=c(5,6,1,4)) # Set the most suitable margins
+  hist(topic_pct_per_document, main='', xlab='% of document assignments', ylab='Number of documents')
+  par(mar=c(5,4,4,2) + 0.1) # reset to default
+}
+
+pf.topicdistribution(info, topic_nr)
+```
+
+This is also the easy way to specify alternative parameters for plotting functions. Some of the default `pf.` functions in this package have additional parameters with default values. The easy way to alter these defaults is by wrapping the function again, with different parameters. For example, let's alter the 
+
+
+```{r}
+
+```
+
+
+
+You can also publish the output file directly using `markdown::rpubsupload`:
+
+```{r eval=FALSE}
+library(markdown)
+result = rpubsUpload("Example topic browser", output)
+browseURL(result$continueUrl)
+```
+
+This produces the results shown in the [the example](http://rpubs.com/vanatteveldt/topicbrowser)
+
+<!-- library(knitr); knit("README.Rmd") -->
+
+
