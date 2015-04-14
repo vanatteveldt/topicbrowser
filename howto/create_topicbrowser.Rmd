@@ -61,7 +61,7 @@ These plot functions can be given to the plotfunction arguments of the createTop
 Here is an example where the plotfunction.overview uses the default plotfunction (`pf.wordcloud_time`) and plotfunction.pertopic is given two functions: `pf.wordcloud_time` and `pf.semnet`
 
 ```{r, message=FALSE}
-createTopicBrowser(info, plotfunction.pertopic=list(pf.wordcloud_time, pf.semnet))
+createTopicBrowser(info, plotfunction.pertopic=list(plot_wordcloud_time, plot_semnet))
 ```
 
 

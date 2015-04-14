@@ -37,18 +37,14 @@ plot_topicdistribution <- function(clusterinfo, topic_nr){
 #' @param topic_nr the index number of a topic
 #' @return nothing, only plots
 #' @export
-plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.05, nwords=100) {
+plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, wordsimilarity.measure='conprob') {
   require(semnet)
   dtm = createTopicDtm(clusterinfo$topics_per_term, clusterinfo$wordassignments, topic_nr, nwords)
-  adj = wordAdjacency(dtm, measure='cosine')
-  g = graph.data.frame(adj, directed=F)
+  g = coOccurenceNetwork(dtm, measure=wordsimilarity.measure)
   g = getBackboneNetwork(g, alpha=backbone_alpha)
   V(g)$cluster = edge.betweenness.community(g)$membership
   
-  wordfreq = data.frame(term=colnames(dtm), freq=colSums(dtm))
-  V(g)$size = wordfreq$freq[match(V(g)$name, wordfreq$term)]
-  
-  g = setNetworkAttributes(g, size_attribute='size', cluster_attribute='cluster')
+  g = setNetworkAttributes(g, size_attribute='freq', cluster_attribute='cluster')
   V(g)$label.cex = V(g)$label.cex * 1.5
   par(mar=c(0,0,0,0))
   plot(g)
@@ -71,8 +67,8 @@ createTopicDtm <- function(topics_per_term, wordassignments, topic_nr, nwords){
 
 
 ### Basic plotting functions
-selectDateInterval <- function(time_var){ 
-  ndays = as.numeric(difftime(min(time_var), max(time_var), units='days'))
+selectTimeInterval <- function(time_var){ 
+  ndays = abs(as.numeric(difftime(min(time_var), max(time_var), units='days')))
   if(ndays < 20*30) return("month")
   if(ndays < 20*7) return('week')
   if(ndays < 20) return('day')
@@ -148,7 +144,7 @@ plot_time <- function(lda_model=NULL, document_topic_matrix=NULL, clusterinfo=NU
     
     time_var = clusterinfo$meta[,time_var]
   }
-  if (time_interval == 'auto') time_interval = selectDateInterval(time_var)
+  if (time_interval == 'auto') time_interval = selectTimeInterval(time_var)
   
   par(mar=c(3,3,3,1))
   time_var = prepare.time.var(time_var, time_interval)  
