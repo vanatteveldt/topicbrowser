@@ -51,7 +51,7 @@ Note that the intervalls for the time graph are based on the date_interval param
 There are also several more advanced visualization function that depend on other packages we developed.
 
 ```{r}
-plot_semnet(info, topic_nr=1) # requires semnet package
+plot_semnet(info, topic_nr=2) # requires semnet package
 ```
 
 These plot functions can be given to the plotfunction arguments of the createTopicBrowser function. 

@@ -44,7 +44,7 @@ plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, 
   g = getBackboneNetwork(g, alpha=backbone_alpha)
   V(g)$cluster = edge.betweenness.community(g)$membership
   
-  g = setNetworkAttributes(g, size_attribute='freq', cluster_attribute='cluster')
+  g = setNetworkAttributes(g, V(g)$freq, V(g)$cluster)
   V(g)$label.cex = V(g)$label.cex * 1.5
   par(mar=c(0,0,0,0))
   plot(g)
