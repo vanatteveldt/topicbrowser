@@ -27,15 +27,23 @@ clusterinfo <- function(m, terms=NULL, documents=NULL, words=terms, meta=NULL) {
 #' 
 #' @param lda_model An lda model fitted using topicmodels::LDA
 #' @param clusterinfo The output of the \code{\link{clusterinfo}} function
+#' @param posterior use the posterior distribution or the actual word assignment (default)
 #' @export
-topics.per.document <- function(lda_model=NULL, clusterinfo=NULL) 
+topics_per_document <- function(lda_model=NULL, clusterinfo=NULL, use.posterior=F) 
 {
-  if (is.null(lda_model)) {
-    if (is.null(clusterinfo)) stop("Either lda_model or clusterinfo needs to be provided")
-    lda_model = clusterinfo$lda_model
+  if (is.null(clusterinfo)) {
+    if (is.null(lda_model)) stop("Either lda_model or clusterinfo needs to be provided")
+    clusterinfo = clusterinfo(lda_model)
   }
-  ids = as.numeric(lda_model@documents)
-  cbind(id = ids, data.frame(posterior(lda_model)$topics))
+
+  if (use.posterior) {
+    tpd = posterior(clusterinfo$lda_model)$topics
+  } else {
+    tpd = t(clusterinfo$topics_per_doc)
+  }
+  
+  ids = as.numeric(clusterinfo$lda_model@documents)
+  cbind(id = ids, data.frame(tpd))
 }
 
 #' Create a topic browser
