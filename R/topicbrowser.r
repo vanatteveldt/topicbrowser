@@ -19,9 +19,24 @@ clusterinfo <- function(m, terms=NULL, documents=NULL, words=terms, meta=NULL) {
   topics_per_term = acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
   
   # order meta for plots  
-  list(tokens=tokens, wordassignments=wordassignments, topics_per_doc=topics_per_doc, topics_per_term=topics_per_term, meta=meta)
+  list(lda_model=m, tokens=tokens, wordassignments=wordassignments, topics_per_doc=topics_per_doc, topics_per_term=topics_per_term, meta=meta)
 }
 
+
+#' Get a dataframe of topics per docment, with an identifier column
+#' 
+#' @param lda_model An lda model fitted using topicmodels::LDA
+#' @param clusterinfo The output of the \code{\link{clusterinfo}} function
+#' @export
+topics.per.document <- function(lda_model=NULL, clusterinfo=NULL) 
+{
+  if (is.null(lda_model)) {
+    if (is.null(clusterinfo)) stop("Either lda_model or clusterinfo needs to be provided")
+    lda_model = clusterinfo$lda_model
+  }
+  ids = as.numeric(lda_model@documents)
+  cbind(id = ids, data.frame(posterior(lda_model)$topics))
+}
 
 #' Create a topic browser
 #' 

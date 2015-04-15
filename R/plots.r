@@ -168,7 +168,7 @@ plot_time <- function(lda_model=NULL, document_topic_matrix=NULL, clusterinfo=NU
 #' 
 #' @param lda_model An lda model fitted using topicmodels::LDA
 #' @param topic_term_matrix a matrix of topics per term
-#' @param topicinfo The output of the \code{\link{clusterinfo}} function
+#' @param clusterinfo The output of the \code{\link{clusterinfo}} function
 #' @param topic_nr the index number of a topic
 #' @param wordsize_scale a scale for the word sizes
 #' @param relative_to_term_total make word sizes relative
