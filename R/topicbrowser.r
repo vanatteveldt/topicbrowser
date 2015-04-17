@@ -15,8 +15,9 @@ clusterinfo <- function(m, terms=NULL, documents=NULL, words=terms, meta=NULL) {
   wordassignments = data.frame(aid = m@documents[m@wordassignments$i], 
                                term = m@terms[m@wordassignments$j], 
                                topic = m@wordassignments$v)
-  topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
   topics_per_term = acast(wordassignments, topic ~ term, value.var='aid', fun.aggregate=length)
+  topics_per_doc = acast(wordassignments, topic ~ aid, value.var='term', fun.aggregate=length) 
+  topics_per_doc = topics_per_doc[,match(m@documents, colnames(topics_per_doc))]
   
   # order meta for plots  
   list(lda_model=m, tokens=tokens, wordassignments=wordassignments, topics_per_doc=topics_per_doc, topics_per_term=topics_per_term, meta=meta)
@@ -145,7 +146,7 @@ getTopDocuments <- function(clusterinfo, topic_nrs, ndocs){
   topdocs = list()
   for(topic_nr in topic_nrs){
     topicass = clusterinfo$topics_per_doc[topic_nr,]
-    topdocs[[topic_nr]] = names(head(topicass[order(-topicass)], n=ndocs))
+    topdocs[[paste('t',topic_nr)]] = names(head(topicass[order(-topicass)], n=ndocs))
   }
   topdocs
 }
@@ -177,7 +178,7 @@ render_html <- function(clusterinfo, topic_nrs, plotfunction.overview, plotfunct
   for (topic_nr in topic_nrs) {
     message("Rendering topic ", topic_nr)
     cat('<div class="tab-pane fade in" id="t',topic_nr,'">\n', sep="")
-    render_topic(clusterinfo, topic_nr, plotfunction.pertopic, topdocs[[topic_nr]], nmaxwords, ...)
+    render_topic(clusterinfo, topic_nr, plotfunction.pertopic, topdocs[[paste('t',topic_nr)]], nmaxwords, ...)
     cat('</div>\n')
   }  
   cat('</div>\n')

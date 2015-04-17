@@ -38,14 +38,14 @@ plot_topicdistribution <- function(clusterinfo, topic_nr, ...){
 #' @param topic_nr the index number of a topic
 #' @return nothing, only plots
 #' @export
-plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, wordsimilarity.measure='conprob', ...) {
+plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, wordsimilarity.measure='conprob', clustering_directed=F, ...) {
   require(semnet)
   dtm = createTopicDtm(clusterinfo$topics_per_term, clusterinfo$wordassignments, topic_nr, nwords)
   g = coOccurenceNetwork(dtm, measure=wordsimilarity.measure)
   g = getBackboneNetwork(g, alpha=backbone_alpha)
   
   if(vcount(g) > 0 & ecount(g) > 0){
-    V(g)$cluster = edge.betweenness.community(g)$membership
+    V(g)$cluster = edge.betweenness.community(g, directed=clustering_directed)$membership
     
     g = setNetworkAttributes(g, V(g)$freq, V(g)$cluster)
     V(g)$label.cex = V(g)$label.cex * 1.5
@@ -107,6 +107,7 @@ fill.time.gaps <- function(d, time_interval){
   d[order(d$time),]
 }
 
+
 prepare.plot.values <- function(document_topic_matrix, break_var, topic_nr, pct=F, value='total', filter=NULL){
   hits = document_topic_matrix[topic_nr,]
   d = aggregate(hits, by=list(break_var=break_var), FUN='sum') 
@@ -159,7 +160,6 @@ plot_time <- function(lda_model=NULL, document_topic_matrix=NULL, clusterinfo=NU
   par(mar=c(3,3,3,3))
   invisible(d)
 }
-
 
 #' Function to plot a word cloud for a given topic
 #' 
