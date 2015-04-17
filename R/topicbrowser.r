@@ -144,8 +144,10 @@ html_footer <- function() {
 #' @export
 getTopDocuments <- function(clusterinfo, topic_nrs, ndocs){
   topdocs = list()
+  tpd = clusterinfo$topics_per_doc
+  tpd = t(t(tpd) / colSums(tpd))
   for(topic_nr in topic_nrs){
-    topicass = clusterinfo$topics_per_doc[topic_nr,]
+    topicass = tpd[topic_nr,]
     topdocs[[paste('t',topic_nr)]] = names(head(topicass[order(-topicass)], n=ndocs))
   }
   topdocs
