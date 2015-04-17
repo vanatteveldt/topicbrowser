@@ -6,7 +6,7 @@
 \usage{
 plot_time(lda_model = NULL, document_topic_matrix = NULL,
   clusterinfo = NULL, topic_nr, time_var = "date", time_interval = "auto",
-  pct = F, value = "total")
+  pct = F, value = "total", ...)
 }
 \arguments{
 \item{topic_nr}{the index number of a topic}

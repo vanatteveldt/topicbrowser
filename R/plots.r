@@ -21,7 +21,7 @@ plot_wordcloud_time <- function(clusterinfo, topic_nr, ...) {
 
 
 
-plot_topicdistribution <- function(clusterinfo, topic_nr){
+plot_topicdistribution <- function(clusterinfo, topic_nr, ...){
   topic_pct_per_document = clusterinfo$topics_per_doc[topic_nr,] / colSums(clusterinfo$topics_per_doc)
   par(mar=c(5,6,1,4)) # Set the most suitable margins
   hist(topic_pct_per_document, main='', xlab='% of document assignments', ylab='Number of documents')
@@ -38,7 +38,7 @@ plot_topicdistribution <- function(clusterinfo, topic_nr){
 #' @param topic_nr the index number of a topic
 #' @return nothing, only plots
 #' @export
-plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, wordsimilarity.measure='conprob') {
+plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, wordsimilarity.measure='conprob', ...) {
   require(semnet)
   dtm = createTopicDtm(clusterinfo$topics_per_term, clusterinfo$wordassignments, topic_nr, nwords)
   g = coOccurenceNetwork(dtm, measure=wordsimilarity.measure)
@@ -132,7 +132,7 @@ prepare.plot.values <- function(document_topic_matrix, break_var, topic_nr, pct=
 #' @param time_var either a vector containing the date for each document, or the column name of the date variable in the metadata stored in the clusterinfo object
 #' @return nothing, only plots
 #' @export
-plot_time <- function(lda_model=NULL, document_topic_matrix=NULL, clusterinfo=NULL, topic_nr, time_var='date', time_interval='auto', pct=F, value='total') {
+plot_time <- function(lda_model=NULL, document_topic_matrix=NULL, clusterinfo=NULL, topic_nr, time_var='date', time_interval='auto', pct=F, value='total', ...) {
 
   if (is.null(document_topic_matrix)) {
     if (is.null(clusterinfo)) {
@@ -178,7 +178,7 @@ plot_time <- function(lda_model=NULL, document_topic_matrix=NULL, clusterinfo=NU
 #' @param relative_to_term_total make word sizes relative
 #' @return nothing, only plots
 #' @export
-plot_wordcloud <- function(lda_model=NULL, topic_term_matrix=NULL, clusterinfo=NULL, topic_nr, wordsize_scale=0.75, relative_to_term_total=F){
+plot_wordcloud <- function(lda_model=NULL, topic_term_matrix=NULL, clusterinfo=NULL, topic_nr, wordsize_scale=0.75, relative_to_term_total=F, ...){
   if (is.null(topic_term_matrix)) {
     if (is.null(clusterinfo)) {
       if (is.null(lda_model)) stop("Either lda_model, topic_term_matrix, or topicinfo needs to be specified")
@@ -202,7 +202,7 @@ plot_wordcloud <- function(lda_model=NULL, topic_term_matrix=NULL, clusterinfo=N
   par(mar=c(5,4,4,2) + 0.1) # reset to default
 }
 
-plot_category <- function(document_sums, topic_nr, category_var, pct=T, value='relative'){
+plot_category <- function(document_sums, topic_nr, category_var, pct=T, value='relative', ...){
   p = par(mar=c(3,3,3,1))
   d = prepare.topics.plot.values(document_sums, break_var=as.character(category_var), topic_nr=topic_nr, pct=pct, value=value)
   colnames(d) = c('category','value')

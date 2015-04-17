@@ -135,6 +135,21 @@ html_footer <- function() {
   parts[2]
 }
 
+#' Get top documents for a topic
+#' 
+#' 
+#' @param topic_nr: the topic nr to render
+#' @param n the number of top documents
+#' @export
+getTopDocuments <- function(clusterinfo, topic_nrs, ndocs){
+  topdocs = list()
+  for(topic_nr in topic_nrs){
+    topicass = clusterinfo$topics_per_doc[topic_nr,]
+    topdocs[[topic_nr]] = names(head(topicass[order(-topicass)], n=ndocs))
+  }
+  topdocs
+}
+
 #' Render the tabbed html containing overview and individual tabs
 #' 
 #' This function does not return the html, but rather cats it directly
@@ -158,7 +173,7 @@ render_html <- function(clusterinfo, topic_nrs, plotfunction.overview, plotfunct
   cat('</div>\n')
   
   topdocs = getTopDocuments(clusterinfo, topic_nrs, nmaxdoc)
-  if(!is.null(clusterinfo$tokens)) clusterinfo$tokens = clusterinfo$tokens[clusterinfo$tokens$aid %in% unlist(topdocs)]
+  if(!is.null(clusterinfo$tokens)) clusterinfo$tokens = clusterinfo$tokens[clusterinfo$tokens$aid %in% unlist(topdocs),]
   for (topic_nr in topic_nrs) {
     message("Rendering topic ", topic_nr)
     cat('<div class="tab-pane fade in" id="t',topic_nr,'">\n', sep="")
@@ -204,21 +219,6 @@ plot_to_file <- function(plotfun, width=500, height=width) {
   png(filename = fn, width = width, height = height)
   tryCatch(force(plotfun), finally=dev.off())
   fn
-}
-
-#' Get top documents for a topic
-#' 
-#' 
-#' @param topic_nr: the topic nr to render
-#' @param n the number of top documents
-#' @export
-getTopDocuments <- function(clusterinfo, topic_nrs, ndocs){
-  topdocs = list()
-  for(topic_nr in topic_nrs){
-    topicass = clusterinfo$topics_per_doc[topic_nr,]
-    topdocs[[topic_nr]] = names(head(topicass[order(-topicass)], n=ndocs))
-  }
-  topdocs
 }
 
 #' Render a single topic

@@ -6,7 +6,7 @@
 \usage{
 plot_wordcloud(lda_model = NULL, topic_term_matrix = NULL,
   clusterinfo = NULL, topic_nr, wordsize_scale = 0.75,
-  relative_to_term_total = F)
+  relative_to_term_total = F, ...)
 }
 \arguments{
 \item{lda_model}{An lda model fitted using topicmodels::LDA}

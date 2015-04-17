@@ -5,7 +5,7 @@
 \title{Standardized plotting function that can be passed to the plotfunction arguments in the \code{\link{createTopicBrowser}} function.}
 \usage{
 plot_semnet(clusterinfo, topic_nr, backbone_alpha = 0.01, nwords = 100,
-  wordsimilarity.measure = "conprob")
+  wordsimilarity.measure = "conprob", ...)
 }
 \arguments{
 \item{topic_nr}{the index number of a topic}
