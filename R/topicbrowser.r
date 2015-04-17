@@ -46,6 +46,8 @@ topics_per_document <- function(lda_model=NULL, clusterinfo=NULL, use.posterior=
   cbind(id = ids, data.frame(tpd))
 }
 
+
+
 #' Create a topic browser
 #' 
 #' This will create a set of linked html pages to browse the given topic model
@@ -61,6 +63,7 @@ topics_per_document <- function(lda_model=NULL, clusterinfo=NULL, use.posterior=
 createTopicBrowser <- function(clusterinfo, 
                                plotfunction.overview=plot_wordcloud, plotfunction.pertopic=c(plot_wordcloud, plot_topicdistribution),  
                                output=NULL, nmaxdoc=10, nmaxwords=100, browse=interactive(), topic_nrs=1:nrow(info$topics_per_doc), ...) {
+  
   url = wrap_html(render_html(clusterinfo, topic_nrs, plotfunction.overview, plotfunction.pertopic, nmaxdoc, nmaxwords, ...),
                   clusterinfo=clusterinfo, output=output, topic_nrs=topic_nrs)
   if (browse) browseURL(url)
@@ -154,10 +157,12 @@ render_html <- function(clusterinfo, topic_nrs, plotfunction.overview, plotfunct
   render_overview(clusterinfo, topic_nrs, plotfunction.overview, ...)
   cat('</div>\n')
   
+  topdocs = getTopDocuments(clusterinfo, topic_nrs, nmaxdoc)
+  if(!is.null(clusterinfo$tokens)) clusterinfo$tokens = clusterinfo$tokens[clusterinfo$tokens$aid %in% unlist(topdocs)]
   for (topic_nr in topic_nrs) {
     message("Rendering topic ", topic_nr)
     cat('<div class="tab-pane fade in" id="t',topic_nr,'">\n', sep="")
-    render_topic(clusterinfo, topic_nr,  plotfunction.pertopic, nmaxdoc, nmaxwords, ...)
+    render_topic(clusterinfo, topic_nr, plotfunction.pertopic, topdocs[[topic_nr]], nmaxwords, ...)
     cat('</div>\n')
   }  
   cat('</div>\n')
@@ -180,13 +185,9 @@ tab_html <- function(id, name) {
 #' @export
 render_overview <- function(clusterinfo, topic_nrs, plotfunction, ...) {
   for(topic_nr in topic_nrs){
-    cat('<a href="#" onclick="showTab(', topic_nr, ');">', sep='')
-    
-    plotfunction_titled <- function(clusterinfo, topic_nr, ...){
-      plotfunction(clusterinfo=clusterinfo, topic_nr=topic_nr, ...)
-      title(main=paste("Topic", topic_nr))
-    }
-    cat_plot(plotfunction_titled(clusterinfo, topic_nr, ...), width=300)
+    cat('<a href="#" title="Topic ', topic_nr, '" onclick="showTab(', topic_nr, ');">', sep='')
+    arguments = listFunctionArguments(plotfunction, clusterinfo=clusterinfo, topic_nr=topic_nr, ...)
+    cat_plot(do.call(plotfunction, arguments), width=300)
     cat("</a>")
   }
 }
@@ -205,6 +206,21 @@ plot_to_file <- function(plotfun, width=500, height=width) {
   fn
 }
 
+#' Get top documents for a topic
+#' 
+#' 
+#' @param topic_nr: the topic nr to render
+#' @param n the number of top documents
+#' @export
+getTopDocuments <- function(clusterinfo, topic_nrs, ndocs){
+  topdocs = list()
+  for(topic_nr in topic_nrs){
+    topicass = clusterinfo$topics_per_doc[topic_nr,]
+    topdocs[[topic_nr]] = names(head(topicass[order(-topicass)], n=ndocs))
+  }
+  topdocs
+}
+
 #' Render a single topic
 #' 
 #' This function does not return the html, but rather cats it directly
@@ -214,19 +230,17 @@ plot_to_file <- function(plotfun, width=500, height=width) {
 #' @param topic_id: the topic id to render
 #' @param info the cluster_info object (list)
 #' @export
-render_topic <- function(clusterinfo, topic_nr, plotfunction, nmaxdoc, nmaxwords, ...) {
+render_topic <- function(clusterinfo, topic_nr, plotfunction, docs, nmaxwords, ...) {
   cat("<h1>Topic", topic_nr, "</h1>")
   
-  for(pfunc in c(plotfunction)) 
-    cat_plot(pfunc(clusterinfo=clusterinfo, topic_nr=topic_nr, ...), width=500, height=500)
-    
-  cat("<h2>Top articles</h2>")
-  topicass = clusterinfo$topics_per_doc[topic_nr,]
-  docs = names(head(topicass[order(-topicass)], n=nmaxdoc))
+  for(pfunc in c(plotfunction)) {
+    arguments = listFunctionArguments(pfunc, clusterinfo=clusterinfo, topic_nr=topic_nr, ...)
+    cat_plot(do.call(pfunc, arguments), width=500, height=500)
+  }
   
+  cat("<h2>Top articles</h2>")
   for (doc in docs) render_article(clusterinfo, doc, maxwords=nmaxwords)
 }
-
 
 #' Render a single article
 #' 
@@ -293,4 +307,15 @@ get_css <- function(topic_nrs) {
   c(css, colorcss)
 }
 
-
+#' Match elipsis arguments to the permitted arguments of a function
+#'  
+#' @param func the function
+#' @param ... any argument
+#' @return a list with all and only given arguments (...) that can be used by the function
+#' @export
+listFunctionArguments <- function(func, ...){
+  arguments = list(...)
+  function_args = names(as.list(args(func)))
+  if(!'...' %in% function_args) arguments = arguments[names(arguments) %in% function_args] 
+  arguments
+}

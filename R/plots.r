@@ -1,3 +1,4 @@
+
 #' Standardized plotting function that can be passed to the plotfunction arguments in the \code{\link{createTopicBrowser}} function.
 #' 
 #' One of the standardized plotting function used in the Topicbrowser package to manage how topics and additional information are visualized.
@@ -42,13 +43,16 @@ plot_semnet <- function(clusterinfo, topic_nr, backbone_alpha=0.01, nwords=100, 
   dtm = createTopicDtm(clusterinfo$topics_per_term, clusterinfo$wordassignments, topic_nr, nwords)
   g = coOccurenceNetwork(dtm, measure=wordsimilarity.measure)
   g = getBackboneNetwork(g, alpha=backbone_alpha)
-  V(g)$cluster = edge.betweenness.community(g)$membership
   
-  g = setNetworkAttributes(g, V(g)$freq, V(g)$cluster)
-  V(g)$label.cex = V(g)$label.cex * 1.5
-  par(mar=c(0,0,0,0))
-  plot(g)
-  par(mar=c(5,4,4,2) + 0.1) # reset to default}
+  if(vcount(g) > 0 & ecount(g) > 0){
+    V(g)$cluster = edge.betweenness.community(g)$membership
+    
+    g = setNetworkAttributes(g, V(g)$freq, V(g)$cluster)
+    V(g)$label.cex = V(g)$label.cex * 1.5
+    par(mar=c(0,0,0,0))
+    plot(g) 
+    par(mar=c(5,4,4,2) + 0.1) # reset to default}
+  } else plot(1, type="n", axes=F, xlab="", ylab="")
 }
 
 createTopicDtm <- function(topics_per_term, wordassignments, topic_nr, nwords){

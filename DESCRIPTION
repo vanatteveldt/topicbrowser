@@ -6,12 +6,13 @@ Author: Kasper Welbers and Wouter van Atteveldt
 Maintainer: Wouter van Atteveldt <wouter@vanatteveldt.com>
 Depends: 
   RColorBrewer,
-  tm,
   wordcloud,
   Matrix,
   reshape2,
   markdown,
   base64
+Imports:
+  tm
 Description: Browse a topic model fit as a set of HTML pages
 License: MIT
 URL: http://github.com/vanatteveldt/topicbrowser
