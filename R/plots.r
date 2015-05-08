@@ -214,3 +214,21 @@ plot_category <- function(document_sums, topic_nr, category_var, pct=T, value='r
           axes=T, names.arg=d$category, cex.names=1, cex.axis=0.7, adj=1, las=2)
   par(mar=c(5,4,4,2) + 0.1) # reset to default
 }
+
+
+plot_topics_network <- function(clusterinfo) {
+  docs = clusterinfo$topics_per_doc
+  t = terms(m, 2)
+  labels = paste(t[1,],  1:nrow(docs), t[2,], sep='\n')
+  
+  g = semnet::adjacencyGraph(t(docs))
+  g = getBackboneNetwork(g, alpha=0.1, delete.isolates = F)
+  E(g)$width = E(g)$weight*10
+  V(g)$size = rescale(V(g)$occurence, to = c(5,10))
+  V(g)$label.cex = rescale(V(g)$occurence, to = c(0.5,1))
+  V(g)$label = labels
+  paste(1:nrow(docs), apply(terms(m, 3), 2, paste, collapse='\n'), sep=': ')
+  V(g)$cluster = edge.betweenness.community(g, directed = F)$membership
+  g = semnet:::setVertexColors(g, 'cluster')
+  plot(g)
+}
